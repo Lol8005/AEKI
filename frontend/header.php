@@ -24,7 +24,9 @@
   </style>
 
 
-
+  <div class="text-center bg-dark text-white" style="font-size: 1.5rem;">
+  This site requires a transaction fee for tracking your activity, but we will refund it to you.😃
+  </div>
   <nav class="navbar navbar-expand-lg" style="background-color: #8c7ae6" data-bs-theme="dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">
