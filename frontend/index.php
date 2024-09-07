@@ -18,10 +18,10 @@ include 'product_cardgroup/productClass.php';
 <body>
     <main>
         <?php
-        include 'product_cardgroup/furniture_cardgroup.php';
-        include 'product_cardgroup/storage_cardgroup.php';
-        include 'product_cardgroup/kitchen_cardgroup.php';
-        include 'product_cardgroup/decoration_cardgroup.php';
+            include 'product_cardgroup/furniture_cardgroup.php';
+            include 'product_cardgroup/storage_cardgroup.php';
+            include 'product_cardgroup/kitchen_cardgroup.php';
+            include 'product_cardgroup/decoration_cardgroup.php';
         ?>
 
     </main>

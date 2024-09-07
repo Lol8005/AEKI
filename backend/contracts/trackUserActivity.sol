@@ -1,30 +1,31 @@
-// SPDX-License-Identifier: SEE LICENSE IN LICENSE
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract trackUserActivity{
 
-    enum ActivityChoice {
-        Visit,  //user interest
-        Buy     //unlikely need the same thing
-    }
+    event Visit(address userAddress, ActivityVisit[] visitedProductCategoryList, uint256 epochTime);
+    event Buy(address userAddress, ProductCategory broughtProduct, uint256 epochTime);
 
     enum ProductCategory{
-        Furniture,
-        Storage,
-        Kitchen,
-        Decoration,
-        Others
+        Furniture,  //0
+        Storage,    //1
+        Kitchen,    //2
+        Decoration, //3
+        Others      //4
     }
 
     struct ActivityVisit{
-        ProductCategory[] productCategory;
-        uint256[] visitDuration; // in seconds
+        ProductCategory productCategory;
+        uint16 visitDuration; // in seconds
     }
 
-    struct Activity{
-        address userAddress;
-        
-        //Visit
+    //example: pass [[0,60],[2,454]]
+    function recordVisit(ActivityVisit[] memory _visitedList) public {
+        emit Visit(msg.sender, _visitedList, block.timestamp);
+    }
+
+    function recordBuy(ProductCategory _broughtProuct) external {
+        emit Buy(msg.sender, _broughtProuct, block.timestamp);
     }
 
     receive() external payable {

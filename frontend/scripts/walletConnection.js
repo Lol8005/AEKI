@@ -5,8 +5,8 @@ async function connectToWallet() {
 	if (typeof window.ethereum !== "undefined") {
 		try {
 			await window.ethereum.request({ method: "eth_requestAccounts" });
-			document.getElementById("connectButton").innerHTML = "Connected";
-			document.getElementById("connectButton").disabled = true;
+			document.getElementById("metamaskWalletButton").innerHTML = "Connected";
+			document.getElementById("metamaskWalletButton").disabled = true;
 		} catch (error) {
 			console.log(error);
 		}
