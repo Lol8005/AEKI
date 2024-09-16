@@ -8,15 +8,15 @@ contract AdminManagement {
 
     struct Admin {
         AdminStatus status;
-        uint32 disableTime; // Time where the admin access should be disabled
+        uint128 disableTime; // Time where the admin access should be disabled
     }
 
     mapping(address => Admin) public admins;
     address[] private adminList;
 
     event AdminRegistered(address indexed admin);
-    event AdminDisabled(address indexed admin, AdminStatus status, uint32 disableTime);
-    event ActionLogged(address indexed admin, string actionType, string status, uint32 timestamp);
+    event AdminDisabled(address indexed admin, AdminStatus status, uint128 disableTime);
+    event ActionLogged(address indexed admin, string actionType, string status, uint128 timestamp);
 
     modifier onlySuperAdmin() {
         require(msg.sender == superAdmin, "Only super admin can perform this action");
@@ -46,17 +46,17 @@ contract AdminManagement {
     }
 
     // Disable admin access instantly or at a set a future time
-    function disableAdminAccess(address _admin, uint32 _disableTime) external onlySuperAdmin {
+    function disableAdminAccess(address _admin, uint128 _disableTime) external onlySuperAdmin {
         Admin storage admin = admins[_admin];
         require(admin.status == AdminStatus.Active, "Admin not active");
 
         // Determine action based on disable time and minimize writes
-        bool isFutureDisable = _disableTime > uint32(block.timestamp);
+        bool isFutureDisable = _disableTime > uint128(block.timestamp);
         admin.status = isFutureDisable ? AdminStatus.Resigned : AdminStatus.Fired;
-        admin.disableTime = isFutureDisable ? _disableTime : uint32(block.timestamp);
+        admin.disableTime = isFutureDisable ? _disableTime : uint128(block.timestamp);
 
         emit AdminDisabled(_admin, admin.status, admin.disableTime);
-        emit ActionLogged(_admin, "Disable", isFutureDisable ? "processing" : "successful", uint32(block.timestamp));
+        emit ActionLogged(_admin, "Disable", isFutureDisable ? "processing" : "successful", uint128(block.timestamp));
     }
 
     // Finalize the disable process when the scheduled time has passed
@@ -68,7 +68,7 @@ contract AdminManagement {
         // Update status to Fired aft final disablement
         admin.status = AdminStatus.Fired;
 
-        emit ActionLogged(_admin, "Disable Finalize", "successful", uint32(block.timestamp));
+        emit ActionLogged(_admin, "Disable Finalize", "successful", uint128(block.timestamp));
     }
 
     // Provide view-only access to the admin list
