@@ -63,10 +63,9 @@
           <input class="form-control me-2 bg-white" type="search" placeholder="Search" aria-label="Search">
           <button class="btn btn-light" type="submit">Search</button>
         </form>
-
-
-
-        <button id="metamaskWalletButton" type="button" class="btn ms-3" style="background-color: #718093" id="connectButton" onclick="connectToWallet()"><img src="assets/icon/metamask.png" height="20px" alt="metamask icon">Connect</button>
+        
+        <button id="metamaskWalletButton" type="button" class="btn ms-3" style="background-color: #718093" id="connectButton" 
+        onclick="connectToWallet()"><img src="assets/icon/metamask.png" height="20px" alt="metamask icon">Connect</button>
       </div>
     </div>
   </nav>

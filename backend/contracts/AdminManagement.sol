@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 contract AdminManagement {
     address public immutable superAdmin; // Set once at deployment, never modified
 
-    enum AdminStatus { Active, Fired, Resigned }
+    enum AdminStatus { NotRegister, Active, Fired, Resigned }
 
     struct Admin {
         AdminStatus status;
@@ -36,7 +36,7 @@ contract AdminManagement {
     function registerNewAdmin(address _admin) external onlySuperAdmin {
         require(_admin != address(0), "Invalid address");
         require(_admin != superAdmin, "Super admin cannot be registered as an admin");
-        require(admins[_admin].status == AdminStatus.Fired, "Admin already active or resigned");
+        require(admins[_admin].status == AdminStatus.NotRegister, "Admin already active or resigned");
 
         admins[_admin] = Admin(AdminStatus.Active, 0);
         adminList.push(_admin);
@@ -74,5 +74,13 @@ contract AdminManagement {
     // Provide view-only access to the admin list
     function viewAdminList() external view returns (address[] memory) {
         return adminList;
+    }
+
+    function isAdmin() public view returns(bool){
+        return admins[msg.sender].status == AdminStatus.Active;
+    }
+
+    function isSuperAdmin(address _address) public view returns(bool){
+        return superAdmin == _address;
     }
 }
