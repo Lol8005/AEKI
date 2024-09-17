@@ -22,9 +22,18 @@ async function checkGotAccess() {
 				await (await signer).getAddress()
 			);
 
-			if (!isSuperAdmin) {
+            const isAdmin = await adminContract.isAdmin(
+				await (await signer).getAddress()
+			);
+
+			if (!isSuperAdmin && window.location.pathname.split("/").at(-1) === "chairman.php") {
 				alert("You don't have the access to this page");
-				window.location.href = "index.php";
+
+                if(isAdmin){
+				    window.location.href = "stockManagement.php";
+                }else{
+                    window.location.href = "index.php";
+                }
 			}
 		} catch (error) {
 			console.log(error);

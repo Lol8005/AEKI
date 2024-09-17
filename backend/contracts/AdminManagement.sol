@@ -76,8 +76,8 @@ contract AdminManagement {
         return adminList;
     }
 
-    function isAdmin() public view returns(bool){
-        return admins[msg.sender].status == AdminStatus.Active;
+    function isAdmin(address _address) public view returns(bool){
+        return admins[_address].status == AdminStatus.Active;
     }
 
     function isSuperAdmin(address _address) public view returns(bool){
