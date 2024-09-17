@@ -45,8 +45,8 @@ contract StockManagement {
         string description;
         ProductStatus productStatus;
         ProductCategory productCategory;
-        uint64 launchTime;
-        uint64 discontinueTime;
+        uint256 launchTime;
+        uint256 discontinueTime;
     }
 
     bytes32[] public onSale_productHash;
@@ -61,8 +61,8 @@ contract StockManagement {
         uint32 quantity,
         string memory description,
         ProductCategory productCategory,
-        uint64 launchEpochTime,
-        uint64 discontinueTime
+        uint256 launchEpochTime,
+        uint256 discontinueTime
     ) public onlyActiveAdmin {
         require(price > 0, "Invalid price");
         require(quantity > 0, "Invalid quantity");
@@ -134,7 +134,7 @@ contract StockManagement {
 
     function discontinueItem(
         bytes32 productHash,
-        uint64 discontinueTime
+        uint256 discontinueTime
     ) public onlyActiveAdmin {
         bool isProductOnSale_bool = isProductOnSale(productHash);
         bool isProductGoingToLaunch_bool = isProductGoingToLaunch(productHash);
@@ -149,7 +149,7 @@ contract StockManagement {
         );
 
         if (discontinueTime == 0) {
-            product_map[productHash].discontinueTime = uint64(block.timestamp);
+            product_map[productHash].discontinueTime = block.timestamp;
             product_map[productHash].productStatus = ProductStatus.Discontinue;
 
             discontinueProduct_productHash.push(productHash);
@@ -228,9 +228,17 @@ contract StockManagement {
         }
 
         for (uint i = 0; i < discontinueProduct_productHash.length; i++) {
-            discontinueProduct[i] = product_map[goingToLaunch_productHash[i]];
+            discontinueProduct[i] = product_map[discontinueProduct_productHash[i]];
         }
 
         return (onSale, goingToLaunch, discontinueProduct);
+    }
+
+    function decreaseStock(bytes32 productHash) external {
+        product_map[productHash].quantity -= 1;
+    }
+
+    function currentTime() public view returns(uint256){
+        return block.timestamp;
     }
 }

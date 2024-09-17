@@ -51,12 +51,26 @@ include 'product_cardgroup/productClass.php';
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Address</th>
+                            <th>Active Admin</th>
                         </tr>
                     </thead>
                     <tbody id="admin_list_table">
                     </tbody>
                 </table>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Resigned Admin</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resigned_admin_list_table">
+                    </tbody>
+                </table>
+
+            </div>
+
+            <div class="text-center">
+                <button type="button" class="btn btn-secondary" onclick="updateAdminAccess()">Update Status</button>
             </div>
         </div>
     </main>

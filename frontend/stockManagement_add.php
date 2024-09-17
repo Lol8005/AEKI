@@ -26,11 +26,10 @@ include 'product_cardgroup/productClass.php';
 <body>
     <main>
         <div class="container">
-
             <div class="row py-5">
                 <div class="col-md-4 order-md-2 mb-4">
                     <h4 class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="text-muted">Your cart</span>
+                        <span class="text-muted">Rules: </span>
                         <span class="badge badge-secondary badge-pill">3</span>
                     </h4>
                     <ul class="list-group mb-3">
@@ -77,23 +76,28 @@ include 'product_cardgroup/productClass.php';
                         </div>
                     </form>
                 </div>
+
                 <div class="col-md-8 order-md-1">
                     <h4 class="mb-3">Add New Product</h4>
-                    <form class="needs-validation" novalidate="">
+                    <div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="productName">Product Name</label>
+                                <label for="productName">Product Name*</label>
                                 <input type="text" class="form-control" id="productName" placeholder="" value="" required="">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="productImage">Product Image*</label>
+                                <input type="file" class="form-control" id="productImage" accept="image/png, image/gif, image/jpeg" placeholder="" value="" required="">
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="price">Price (RM)</label>
+                                <label for="price">Price (RM)*</label>
                                 <input type="text" class="form-control" id="price" placeholder="RM XXX" required="">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="quantity">Quantity</label>
+                                <label for="quantity">Quantity*</label>
                                 <input type="text" class="form-control" id="quantity" placeholder="" required="">
                             </div>
                         </div>
@@ -104,13 +108,13 @@ include 'product_cardgroup/productClass.php';
                         </div>
 
                         <div class="mb-3">
-                            <label for="category">Choose product category</label>
+                            <label for="category">Choose product category*</label>
                             <select class="form-control form-control-sm" name="category" id="category">
-                                <option value="furniture">Furniture</option>
-                                <option value="storage">Storage</option>
-                                <option value="kitchen">Kitchen</option>
-                                <option value="decoration">Decoration</option>
-                                <option value="others">Others</option>
+                                <option value="0">Furniture</option>
+                                <option value="1">Storage</option>
+                                <option value="2">Kitchen</option>
+                                <option value="3">Decoration</option>
+                                <option value="4">Others</option>
                             </select>
                         </div>
 
@@ -125,9 +129,12 @@ include 'product_cardgroup/productClass.php';
                             </div>
                         </div>
 
+                        <p class="text-danger">Don't leave field with (*) empty!</p>
+
                         <hr class="mb-4">
-                        <button class="btn btn-primary btn-lg btn-block" type="submit">Continue to checkout</button>
-                    </form>
+                        <button class="btn btn-primary btn-lg btn-block" onclick="addNewProduct()">Add product</button>
+                        <button class="btn btn-danger" onclick="clearAddProduct()">Clear</button>
+                    </div>
                 </div>
             </div>
         </div>

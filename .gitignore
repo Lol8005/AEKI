@@ -1,5 +1,5 @@
 frontend/node_modules
 backend/node_modules
-backend/build
-backend/old_contract
-frontend/vendor
+blockchain/build
+blockchain/node_modules
+blockchain/old_contract

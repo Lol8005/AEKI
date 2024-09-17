@@ -60,15 +60,14 @@ contract AdminManagement {
     }
 
     // Finalize the disable process when the scheduled time has passed
-    function finalizeDisable(address _admin) external {
-        Admin storage admin = admins[_admin];
-        require(admin.status == AdminStatus.Resigned, "Admin is not set for resignation");
-        require(block.timestamp >= admin.disableTime, "Disable time has not been reached");
+    function finalizeDisable() public onlySuperAdmin {
+        for (uint i = 0; i < adminList.length; i++) {
+            if(admins[adminList[i]].status == AdminStatus.Resigned && admins[adminList[i]].disableTime > block.timestamp){
+                admins[adminList[i]].status = AdminStatus.Fired;
 
-        // Update status to Fired aft final disablement
-        admin.status = AdminStatus.Fired;
-
-        emit ActionLogged(_admin, "Disable Finalize", "successful", uint128(block.timestamp));
+                emit ActionLogged(adminList[i], "Disable Finalize", "successful", uint128(block.timestamp));
+            }
+        }
     }
 
     // Provide view-only access to the admin list
@@ -92,7 +91,7 @@ contract AdminManagement {
     }
 
     function isAdmin(address _address) public view returns(bool){
-        return admins[_address].status == AdminStatus.Active;
+        return admins[_address].status == AdminStatus.Active || (admins[_address].status == AdminStatus.Resigned == admins[_address].disableTime < block.timestamp);
     }
 
     function isSuperAdmin(address _address) public view returns(bool){

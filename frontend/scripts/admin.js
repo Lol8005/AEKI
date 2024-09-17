@@ -1,4 +1,9 @@
-import { AdminManagementAbi, AdminManagementAddress } from "./contractData.js";
+import {
+	AdminManagementAbi,
+	AdminManagementAddress,
+	StockManagementAbi,
+	StockManagementAddress,
+} from "./contractData.js";
 import { ethers } from "./ethers-v6.13.2.min.js";
 
 async function checkGotAccess() {
@@ -22,18 +27,21 @@ async function checkGotAccess() {
 				await (await signer).getAddress()
 			);
 
-            const isAdmin = await adminContract.isAdmin(
+			const isAdmin = await adminContract.isAdmin(
 				await (await signer).getAddress()
 			);
 
-			if (!isSuperAdmin && window.location.pathname.split("/").at(-1) === "chairman.php") {
+			if (
+				!isSuperAdmin &&
+				window.location.pathname.split("/").at(-1) === "chairman.php"
+			) {
 				alert("You don't have the access to this page");
 
-                if(isAdmin){
-				    window.location.href = "stockManagement_list.php";
-                }else{
-                    window.location.href = "index.php";
-                }
+				if (isAdmin) {
+					window.location.href = "stockManagement_list.php";
+				} else {
+					window.location.href = "index.php";
+				}
 			}
 		} catch (error) {
 			console.log(error);
@@ -62,8 +70,28 @@ async function getAdminList() {
 
 			const adminList = await adminContract.viewAdminList();
 
-			for (const admin of adminList) {
+			for (const admin of adminList[0]) {
 				addNewAdminToTable(admin);
+			}
+
+			for (const admin of adminList[1]) {
+				if (
+					admin == "0x0000000000000000000000000000000000000000" ||
+					admin == ""
+				) {
+					continue;
+				}
+
+				const root = document.getElementById(
+					"resigned_admin_list_table"
+				);
+				const tr = document.createElement("tr");
+				const td = document.createElement("td");
+
+				const address = document.createTextNode(admin);
+				td.appendChild(address);
+				tr.appendChild(td);
+				root.appendChild(tr);
 			}
 		} catch (error) {
 			alert("Transaction failed.");
@@ -75,7 +103,7 @@ async function getAdminList() {
 }
 
 if (window.location.pathname.split("/").at(-1) === "chairman.php") {
-    getAdminList();
+	getAdminList();
 }
 
 window.addNewAdmin = async function addNewAdmin() {
@@ -110,6 +138,13 @@ window.addNewAdmin = async function addNewAdmin() {
 };
 
 function addNewAdminToTable(_address) {
+	if (
+		_address == "0x0000000000000000000000000000000000000000" ||
+		_address == ""
+	) {
+		return;
+	}
+
 	const root = document.getElementById("admin_list_table");
 
 	const btn = document.createElement("button");
@@ -148,16 +183,17 @@ window.adminListTableBtn = async function adminListTableBtn(_address) {
 				"0"
 			);
 
-			if (reply == null || reply == "0") {
-                await adminContract.disableAdminAccess(
-                    _address, 0
-                );
-			}else{
-                console.log("Resign Date: " + Date.parse(reply));
-                await adminContract.disableAdminAccess(
-                    _address, Date.parse(reply)
-                );
-            }
+			if (reply == null) return;
+
+			if (reply == "0" || reply == "") {
+				await adminContract.disableAdminAccess(_address, 0);
+			} else {
+				console.log("Resign Date: " + Date.parse(reply) / 1000);
+				await adminContract.disableAdminAccess(
+					_address,
+					Date.parse(reply) / 1000
+				);
+			}
 		} catch (error) {
 			alert("Transaction failed.");
 			console.log(error);
@@ -168,8 +204,8 @@ window.adminListTableBtn = async function adminListTableBtn(_address) {
 };
 
 //TODO: check admin access still there, if not revoke access
-async function updateAdminAccess(){
-    if (typeof window.ethereum !== "undefined") {
+window.updateAdminAccess = async function updateAdminAccess() {
+	if (typeof window.ethereum !== "undefined") {
 		try {
 			const provider = new ethers.BrowserProvider(window.ethereum);
 
@@ -181,9 +217,7 @@ async function updateAdminAccess(){
 				signer
 			);
 
-			await adminContract.registerNewAdmin(
-				document.getElementById("adminAddress").value
-			);
+			await adminContract.finalizeDisable();
 		} catch (error) {
 			alert("Transaction failed.");
 			console.log(error);
@@ -193,4 +227,279 @@ async function updateAdminAccess(){
 	}
 }
 
+window.addNewProduct = async function addNewProduct() {
+	if (typeof window.ethereum !== "undefined") {
+		try {
+			const name = document.getElementById("productName").value;
+			const img = document.getElementById("productImage").files[0];
+			const price = document.getElementById("price").value;
+			const quantity = document.getElementById("quantity").value;
+			const description = document.getElementById("description").value;
+			const category = document.getElementById("category").value;
+			const launch =
+				Date.parse(document.getElementById("launchTime").value) / 1000;
+			const discontinue =
+				Date.parse(document.getElementById("discontinueTime").value) /
+				1000;
 
+			// await stockManagementContract.addNewProduct(
+			// 	document.getElementById("adminAddress").value
+			// );
+
+			console.log(name);
+			console.log(img);
+			console.log(price);
+			console.log(quantity);
+			console.log(description);
+			console.log(category);
+			console.log(launch);
+			console.log(discontinue);
+
+			if (
+				name == "" ||
+				img == "" ||
+				price == "" ||
+				quantity == "" ||
+				category == ""
+			) {
+				alert("Please fill in all the field with (*)!");
+				return;
+			}
+
+			const formData = new FormData();
+			formData.append("file", img);
+
+			var imgCid;
+			try {
+				const response = await fetch("http://localhost:4000/upload", {
+					method: "POST",
+					body: formData,
+				});
+
+				if (!response.ok) {
+					throw new Error("Failed to upload image");
+				}
+
+				const result = await response.json();
+				imgCid = result.cid["/"]; // Assuming the API returns the CID in the response
+				console.log(imgCid);
+			} catch (error) {
+				alert("Image upload failed.");
+				console.log(error);
+				return;
+			}
+
+			const provider = new ethers.BrowserProvider(window.ethereum);
+			const signer = await provider.getSigner();
+			const stockManagementContract = new ethers.Contract(
+				StockManagementAddress,
+				StockManagementAbi,
+				signer
+			);
+
+			await stockManagementContract.addNewProduct(
+				name,
+				imgCid,
+				price,
+				quantity,
+				description,
+				category,
+				isNaN(launch) ? 0 : launch,
+				isNaN(discontinue) ? 0 : discontinue
+			);
+
+			alert("Successfully add new product!");
+			window.location.href = "stockManagement_list.php";
+
+			//addNewAdminToTable(document.getElementById("adminAddress").value);
+		} catch (error) {
+			alert("Transaction failed.");
+			console.log(error);
+		}
+	} else {
+		console.error("Browser wallet not detected!!!");
+	}
+};
+
+window.clearAddProduct = async function clearAddProduct() {
+	document.getElementById("productName").value = "";
+	document.getElementById("productImage").value = "";
+	document.getElementById("price").value = "";
+	document.getElementById("quantity").value = "";
+	document.getElementById("description").value = "";
+	document.getElementById("category").value = "furniture";
+	document.getElementById("launchTime").value = "";
+	document.getElementById("discontinueTime").value = "";
+};
+
+async function getProductList() {
+	if (typeof window.ethereum !== "undefined") {
+		try {
+			// Connect to Ethereum
+			const provider = new ethers.BrowserProvider(window.ethereum);
+			const signer = await provider.getSigner();
+
+			// Create an instance of the contract
+			const stockManagementContract = new ethers.Contract(
+				StockManagementAddress,
+				StockManagementAbi,
+				signer
+			);
+
+			// Fetch product lists
+			const [onSaleProducts, goingToLaunchProducts, discontinueProducts] =
+				await stockManagementContract.getProductList();
+
+			// Update HTML table
+			updateTable("active_product_list_table", onSaleProducts, "active");
+			updateTable(
+				"going_to_launch_product_list_table",
+				goingToLaunchProducts,
+				"launch"
+			);
+			updateTable(
+				"discontinue_product_list_table",
+				discontinueProducts,
+				"discontinue"
+			);
+		} catch (error) {
+			alert("Failed to fetch product data.");
+			console.error(error);
+		}
+	} else {
+		console.error("Browser wallet not detected!!!");
+	}
+}
+
+function updateTable(tableId, products, status) {
+	const tableBody = document.getElementById(tableId);
+
+	products.forEach((product) => {
+		const row = document.createElement("tr");
+
+		if (status == "active") {
+			row.innerHTML = `
+            <td>${product.productName}</td>
+            <td>RM ${product.price.toString()}</td>
+            <td>${product.quantity.toString()}</td>
+            <td>${getCategoryName(product.productCategory)}</td>
+			<td>${new Date(Number(product.discontinueTime) * 1000)}</td>
+            <td>
+                <button class="btn btn-primary" onclick="updateQuantity('${
+					product.productUniqueHash
+				}')">Add Quantity</button>
+                <button class="btn btn-danger" onclick="discontinueProduct('${
+					product.productUniqueHash
+				}')">Discontinue</button>
+            </td>
+        `;
+		} else if (status == "launch") {
+			row.innerHTML = `
+            <td>${product.productName}</td>
+            <td>RM ${product.price.toString()}</td>
+            <td>${product.quantity.toString()}</td>
+            <td>${getCategoryName(product.productCategory)}</td>
+			<td>${new Date(Number(product.launchTime) * 1000)}</td>
+            <td>
+                <button class="btn btn-primary" onclick="updateQuantity('${
+					product.productUniqueHash
+				}')">Add Quantity</button>
+                <button class="btn btn-danger" onclick="discontinueProduct('${
+					product.productUniqueHash
+				}')">Discontinue</button>
+            </td>
+        `;
+		} else {
+			row.innerHTML = `
+            <td>${product.productName}</td>
+            <td>RM ${product.price.toString()}</td>
+            <td>${getCategoryName(product.productCategory)}</td>
+            <td>${new Date(Number(product.discontinueTime) * 1000)}</td>
+        `;
+		}
+
+		tableBody.appendChild(row);
+	});
+}
+
+function getCategoryName(categoryIndex) {
+	const categories = [
+		"Furniture",
+		"Storage",
+		"Kitchen",
+		"Decoration",
+		"Others",
+	];
+	return categories[categoryIndex] || "Unknown";
+}
+
+if (window.location.pathname.split("/").at(-1) === "stockManagement_list.php") {
+	getProductList();
+}
+
+window.updateQuantity = async function updateQuantity(uniqueHash) {
+	if (typeof window.ethereum !== "undefined") {
+		try {
+			// Connect to Ethereum
+			const provider = new ethers.BrowserProvider(window.ethereum);
+			const signer = await provider.getSigner();
+
+			// Create an instance of the contract
+			const stockManagementContract = new ethers.Contract(
+				StockManagementAddress,
+				StockManagementAbi,
+				signer
+			);
+
+			const quantity = prompt("Restock quantity", "0");
+
+			if (quantity == null) return;
+
+			await stockManagementContract.restockProduct(uniqueHash, quantity);
+		} catch (error) {
+			alert("Transaction failed.");
+			console.log(error);
+		}
+	} else {
+		console.error("Browser wallet not detected!!!");
+	}
+};
+
+window.discontinueProduct = async function discontinueProduct(uniqueHash) {
+	if (typeof window.ethereum !== "undefined") {
+		try {
+			// Connect to Ethereum
+			const provider = new ethers.BrowserProvider(window.ethereum);
+			const signer = await provider.getSigner();
+
+			// Create an instance of the contract
+			const stockManagementContract = new ethers.Contract(
+				StockManagementAddress,
+				StockManagementAbi,
+				signer
+			);
+
+			var discontinueTime = prompt(
+				"Discontinue Date (Format: yyyy-MM-dd) \n 0 to discontinue now",
+				0
+			);
+
+			if (discontinueTime == null) return;
+
+			discontinueTime =
+				discontinueTime == 0 ? 0 : Date.parse(discontinueTime) / 1000;
+
+			console.log(discontinueTime);
+
+			await stockManagementContract.discontinueItem(
+				uniqueHash,
+				discontinueTime
+			);
+		} catch (error) {
+			alert("Transaction failed.");
+			console.log(error);
+		}
+	} else {
+		console.error("Browser wallet not detected!!!");
+	}
+};

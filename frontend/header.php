@@ -71,7 +71,7 @@
               </a>
               <ul class="dropdown-menu" style="background-color: #353b48">
                 <li><a class="dropdown-item" href="stockManagement_add.php">Add product</a></li>
-                <li><a class="dropdown-item" href="#">Storage</a></li>
+                <li><a class="dropdown-item" href="stockManagement_list.php">Product List</a></li>
                 <li><a class="dropdown-item" href="#">Kitchen</a></li>
                 <li><a class="dropdown-item" href="#">Decoration</a></li>
                 <li>
