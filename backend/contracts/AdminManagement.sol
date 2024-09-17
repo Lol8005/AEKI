@@ -24,7 +24,7 @@ contract AdminManagement {
     }
 
     modifier onlyActiveAdmin() {
-        require(admins[msg.sender].status == AdminStatus.Active, "Only active admins can perform this action");
+        require(admins[msg.sender].status == AdminStatus.Active || msg.sender == superAdmin, "Only active admins can perform this action");
         _;
     }
 
@@ -72,8 +72,23 @@ contract AdminManagement {
     }
 
     // Provide view-only access to the admin list
-    function viewAdminList() external view returns (address[] memory) {
-        return adminList;
+    function viewAdminList() external view returns (address[] memory, address[] memory) {
+        address[] memory _activeAdminList = new address[](adminList.length);
+        uint _activeAdminListIndex = 0;
+        address[] memory _resignAdminList= new address[](adminList.length);
+        uint _resignAdminListIndex = 0;
+
+        for (uint i = 0; i < adminList.length; i++) {
+            if(admins[adminList[i]].status == AdminStatus.Active){
+                _activeAdminList[_activeAdminListIndex] = adminList[i];
+                _activeAdminListIndex++;
+            }else if(admins[adminList[i]].status == AdminStatus.Resigned){
+                _resignAdminList[_resignAdminListIndex] = adminList[i];
+                _resignAdminListIndex++;
+            }
+        }
+
+        return (_activeAdminList, _resignAdminList);
     }
 
     function isAdmin(address _address) public view returns(bool){

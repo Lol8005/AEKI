@@ -30,7 +30,7 @@ async function checkGotAccess() {
 				alert("You don't have the access to this page");
 
                 if(isAdmin){
-				    window.location.href = "stockManagement.php";
+				    window.location.href = "stockManagement_list.php";
                 }else{
                     window.location.href = "index.php";
                 }
@@ -74,7 +74,9 @@ async function getAdminList() {
 	}
 }
 
-getAdminList();
+if (window.location.pathname.split("/").at(-1) === "chairman.php") {
+    getAdminList();
+}
 
 window.addNewAdmin = async function addNewAdmin() {
 	if (typeof window.ethereum !== "undefined") {
@@ -190,3 +192,5 @@ async function updateAdminAccess(){
 		console.error("Browser wallet not detected!!!");
 	}
 }
+
+

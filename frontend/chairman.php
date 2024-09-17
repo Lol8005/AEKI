@@ -1,4 +1,7 @@
 <?php
+session_start();
+$_SESSION["isAdmin"] = true;
+
 include 'header.php';
 include 'product_cardgroup/productClass.php';
 ?>
