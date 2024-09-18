@@ -72,7 +72,7 @@ include 'product_cardgroup/productClass.php';
                 </tbody>
             </table>
             <div class="text-center">
-                <button type="button" class="btn btn-secondary" onclick="updateAdminAccess()">Update Status</button>
+                <button type="button" class="btn btn-secondary" onclick="updateProductStatus()">Update Status</button>
             </div>
         </div>
     </main>

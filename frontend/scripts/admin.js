@@ -383,7 +383,7 @@ function updateTable(tableId, products, status) {
             <td>RM ${product.price.toString()}</td>
             <td>${product.quantity.toString()}</td>
             <td>${getCategoryName(product.productCategory)}</td>
-			<td>${new Date(Number(product.discontinueTime) * 1000)}</td>
+			<td>${Number(product.discontinueTime) == 0 ? NaN : new Date(Number(product.discontinueTime) * 1000)}</td>
             <td>
                 <button class="btn btn-primary" onclick="updateQuantity('${
 					product.productUniqueHash
@@ -399,7 +399,7 @@ function updateTable(tableId, products, status) {
             <td>RM ${product.price.toString()}</td>
             <td>${product.quantity.toString()}</td>
             <td>${getCategoryName(product.productCategory)}</td>
-			<td>${new Date(Number(product.launchTime) * 1000)}</td>
+			<td>${Number(product.launchTime) == 0 ? NaN : new Date(Number(product.launchTime) * 1000)}</td>
             <td>
                 <button class="btn btn-primary" onclick="updateQuantity('${
 					product.productUniqueHash
@@ -503,3 +503,27 @@ window.discontinueProduct = async function discontinueProduct(uniqueHash) {
 		console.error("Browser wallet not detected!!!");
 	}
 };
+
+window.updateProductStatus = async function updateProductStatus(){
+	if (typeof window.ethereum !== "undefined") {
+		try {
+			// Connect to Ethereum
+			const provider = new ethers.BrowserProvider(window.ethereum);
+			const signer = await provider.getSigner();
+
+			// Create an instance of the contract
+			const stockManagementContract = new ethers.Contract(
+				StockManagementAddress,
+				StockManagementAbi,
+				signer
+			);
+
+			await stockManagementContract.updateProductStatus();
+		} catch (error) {
+			alert("Transaction failed.");
+			console.log(error);
+		}
+	} else {
+		console.error("Browser wallet not detected!!!");
+	}
+}

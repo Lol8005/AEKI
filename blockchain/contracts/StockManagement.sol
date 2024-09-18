@@ -67,9 +67,6 @@ contract StockManagement {
         require(price > 0, "Invalid price");
         require(quantity > 0, "Invalid quantity");
 
-        string(
-            abi.encodePacked(abi.encodePacked(name, img_hash), block.timestamp)
-        );
         bytes32 productUniqueHash = keccak256(
             bytes(
                 string(
@@ -130,6 +127,8 @@ contract StockManagement {
         require(quantity > 0, "Invalid quantity");
 
         product_map[productHash].quantity += quantity;
+
+        product_map[productHash].productStatus == ProductStatus.Active;
     }
 
     function discontinueItem(
@@ -234,8 +233,36 @@ contract StockManagement {
         return (onSale, goingToLaunch, discontinueProduct);
     }
 
+    function updateProductStatus() public {
+        require(msg.sender == superAdmin, "Only super admin are allow to perform this action");
+
+        for (uint i = 0; i < goingToLaunch_productHash.length; i++) {
+            bytes32 _hash = goingToLaunch_productHash[i];
+            if(block.timestamp > product_map[_hash].launchTime && product_map[_hash].productStatus == ProductStatus.ReadyToLaunch){
+                remove_goingToLaunch_productHash(_hash);
+                onSale_productHash.push(_hash);
+                product_map[_hash].productStatus = ProductStatus.Active;
+            }
+        }
+
+        for (uint i = 0; i < onSale_productHash.length; i++) {
+            bytes32 _hash = onSale_productHash[i];
+            if(product_map[_hash].discontinueTime != 0 && block.timestamp > product_map[_hash].discontinueTime){
+                remove_onSale_productHash(_hash);
+                discontinueProduct_productHash.push(_hash);
+                product_map[_hash].productStatus = ProductStatus.Discontinue;
+            }
+        }
+    }
+
     function decreaseStock(bytes32 productHash) external {
+        require(product_map[productHash].productStatus == ProductStatus.Active, "Product not active");
+
         product_map[productHash].quantity -= 1;
+
+        if(product_map[productHash].quantity == 0){
+            product_map[productHash].productStatus = ProductStatus.OutOfStock;
+        }
     }
 
     function currentTime() public view returns(uint256){
