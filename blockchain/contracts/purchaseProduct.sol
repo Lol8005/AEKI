@@ -1,17 +1,3 @@
-/*
-1. admin upload ads details
-2. Can adjust time
-3. timelock detect time
-4. detect AEKI user event
-
-
-
-delivers promotional messages
-track customer transactions and events. (backend side)
-
-2^72/(10^18 *50)
-*/
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -26,9 +12,22 @@ contract purchaseProduct{
 
     mapping(address => purchaseDetail[]) purchaseRecord;
 
+    event purchaseEvent(address user, bytes32 purchaseHash, bytes32 productHash, uint32 quantity);
+
+    enum PurchaseStatus{
+        NotPurchase,
+        Purchased,
+        Refund_proccessing,
+        Refunded,
+        NotRefundable
+    }
+
     struct purchaseDetail{
+        bytes32 purchaseHash;
         bytes32 productHash;
+        uint32 quantity;
         uint256 purchaseTime;
+        PurchaseStatus purchaseStatus;
     }
 
     constructor(address _adminManagementAddress) {
@@ -37,13 +36,46 @@ contract purchaseProduct{
     }
 
     //ignore security, attacker modify js code on client side
-    function userPurchaseProduct(uint16 productPrice, bytes32 productHash) payable public {
-        require(msg.value >= productPrice * ethToWei / ethToMYR, "Don't enough eth to proccess transaction");
-        require(stockManagement.isProductOnSale(productHash), "Product not on sale");
+    function userPurchaseProduct(bytes32 productHash, uint32 quantity) payable public {
+        uint32 price = stockManagement.returnProductPrice(productHash);
 
-        purchaseRecord[msg.sender].push(purchaseDetail(productHash, block.timestamp));
-        stockManagement.decreaseStock(productHash);
+        require(msg.value >= price * ethToWei / ethToMYR, "Don't enough eth to proccess transaction");
 
-        //recordBuy(category);
+        stockManagement.decreaseStock(productHash, quantity);
+
+        bytes32 _purchaseHash = keccak256(
+            bytes(
+                string(
+                    abi.encodePacked(
+                        productHash,
+                        abi.encodePacked(
+                            quantity,
+                            block.timestamp
+                        )
+                    )
+                )
+            )
+        );
+        
+        purchaseRecord[msg.sender].push(purchaseDetail(_purchaseHash, productHash, quantity, block.timestamp,PurchaseStatus.Purchased));
+        
+
+        emit purchaseEvent(msg.sender, _purchaseHash, productHash, quantity);
+    }
+
+    function isUserMakePurchase(address user, bytes32 purchaseHash) external view returns (bool){
+        purchaseDetail[] memory records = purchaseRecord[user];
+
+        for (uint i = 0; i < records.length; i++) {
+            if (records[i].purchaseHash == purchaseHash){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function getUserPurchaseList(address user) public view returns(purchaseDetail[] memory){
+        return purchaseRecord[user];
     }
 }

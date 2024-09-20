@@ -192,25 +192,25 @@ contract StockManagement {
     }
 
     function isProductOnSale(bytes32 productHash) public view returns (bool) {
-        for (uint i = 0; i < onSale_productHash.length; i++) {
-            if (onSale_productHash[i] == productHash) {
-                return true;
-            }
-        }
+        // for (uint i = 0; i < onSale_productHash.length; i++) {
+        //     if (onSale_productHash[i] == productHash) {
+        //         return true;
+        //     }
+        // }
 
-        return false;
+        return product_map[productHash].productStatus == ProductStatus.Active || product_map[productHash].productStatus == ProductStatus.OutOfStock;
     }
 
     function isProductGoingToLaunch(
         bytes32 productHash
     ) public view returns (bool) {
-        for (uint i = 0; i < goingToLaunch_productHash.length; i++) {
-            if (goingToLaunch_productHash[i] == productHash) {
-                return true;
-            }
-        }
+        // for (uint i = 0; i < goingToLaunch_productHash.length; i++) {
+        //     if (goingToLaunch_productHash[i] == productHash) {
+        //         return true;
+        //     }
+        // }
 
-        return false;
+        return product_map[productHash].productStatus == ProductStatus.ReadyToLaunch;
     }
 
     function getProductList() public view returns(Product[] memory, Product[] memory, Product[] memory) {
@@ -255,17 +255,20 @@ contract StockManagement {
         }
     }
 
-    function decreaseStock(bytes32 productHash) external {
+    function decreaseStock(bytes32 productHash, uint32 quantity) external {
         require(product_map[productHash].productStatus == ProductStatus.Active, "Product not active");
+        require(product_map[productHash].quantity >= quantity, "Product stock not enough");
 
-        product_map[productHash].quantity -= 1;
+        product_map[productHash].quantity -= quantity;
 
         if(product_map[productHash].quantity == 0){
             product_map[productHash].productStatus = ProductStatus.OutOfStock;
         }
     }
 
-    function currentTime() public view returns(uint256){
-        return block.timestamp;
+    function returnProductPrice(bytes32 productHash) public view returns(uint32){
+        require(isProductOnSale(productHash), "Not on sale");
+
+        return product_map[productHash].price;
     }
 }
