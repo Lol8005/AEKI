@@ -1,29 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPFS Data Retrieval</title>
-</head>
-<body>
-    <h1>Retrieve Data from IPFS</h1>
-    <button id="fetch-data">Fetch Data</button>
-    <pre id="result"></pre>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>IPFS Data Retrieval</title>
+	</head>
+	<body>
+		<h1>Retrieve Data from IPFS</h1>
+		<button id="fetch-data" onclick="fetchImage('QmcU31CbJ8y7EgLQEtxi1ys7Y2dgoGrs4JP1qMh8tWZuiA')">Fetch Data</button>
+		<pre id="result"></pre>
 
-    <script>
-        document.getElementById('fetch-data').addEventListener('click', () => {
-            const ipfsApiUrl = 'http://127.0.0.1:8080/ipfs';
-            const cid = 'QmUMrJq6jEB4BhtLxfLTM6SK7x8NhSv6kaH5iqtxRRWTUH';  // Replace with your CID
+        <img id="fetchedImage">
 
-            fetch(`${ipfsApiUrl}/${cid}`)
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById('result').textContent = data;
-                })
-                .catch(error => {
-                    console.error('Error fetching data from IPFS:', error);
-                });
-        });
-    </script>
-</body>
+		<script>
+			// document
+			// 	.getElementById("fetch-data")
+			// 	.addEventListener("click", () => {
+			// 		const ipfsApiUrl = "http://127.0.0.1:8080/ipfs";
+			// 		const cid =
+			// 			"QmcU31CbJ8y7EgLQEtxi1ys7Y2dgoGrs4JP1qMh8tWZuiA"; // Replace with your CID
+
+			// 		fetch(`${ipfsApiUrl}/${cid}`)
+			// 			.then((response) => response.text())
+			// 			.then((data) => {
+			// 				document.getElementById("result").textContent =
+			// 					data;
+			// 			})
+			// 			.catch((error) => {
+			// 				console.error(
+			// 					"Error fetching data from IPFS:",
+			// 					error
+			// 				);
+			// 			});
+			// 	});
+
+			async function fetchImage(cid) {
+            const response = await fetch(`http://localhost:4000/retrieve/${cid}`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const imageUrl = URL.createObjectURL(blob);
+                const img = document.getElementById('fetchedImage');
+                img.src = imageUrl;
+                //img.style.display = 'block'; // Show the image
+            } else {
+                console.error('Failed to fetch image:', response.statusText);
+            }
+        }
+		</script>
+	</body>
 </html>

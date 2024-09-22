@@ -1,9 +1,8 @@
 <?php
-session_start();
-$_SESSION["isAdmin"] = true;
+    session_start();
+    $_SESSION["isAdmin"] = true;
 
-include 'header.php';
-include 'product_cardgroup/productClass.php';
+    include 'header.php';
 ?>
 
 <!DOCTYPE html>

@@ -13,6 +13,7 @@
       <div class="carousel-item <?php echo $i == 0 ? "active" : ""  ?>">
 
         <div class="row row-cols-1 row-cols-md-4 g-4 mx-3 overflow-hidden">
+          
           <?php for ($j = 0 + ($i * $item_per_slide); $j < count($products) && $j < ($i + 1) * $item_per_slide; $j++) { ?>
             <div class="col">
               <div class="card h-100">

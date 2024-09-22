@@ -19,7 +19,7 @@ window.connectToWallet = async function connectToWallet() {
 				"Connected";
 			document.getElementById("metamaskWalletButton").disabled = true;
 
-			checkIsUserAdmin();
+			//checkIsUserAdmin();
 		} catch (error) {
 			console.log(error);
 		}

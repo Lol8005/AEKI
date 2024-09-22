@@ -29,7 +29,7 @@
   </div> -->
   <nav class="navbar navbar-expand-lg" style="background-color: #8c7ae6" data-bs-theme="dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">
+      <a class="navbar-brand" href="index.php">
         <img src="assets/logo/svg/logo-no-background.svg" alt="Logo" width="50" class="d-inline-block align-text-top">
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,25 +40,25 @@
           <?php if (!$_SESSION["isAdmin"]) { ?>
 
             <li class="nav-item">
-              <a class="nav-link active" aria-current="page" href="#">Home</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#">Promotion</a>
+              <a class="nav-link active" aria-current="page" href="index.php">Home</a>
             </li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 Category
               </a>
               <ul class="dropdown-menu" style="background-color: #353b48">
-                <li><a class="dropdown-item" href="#">Furniture</a></li>
-                <li><a class="dropdown-item" href="#">Storage</a></li>
-                <li><a class="dropdown-item" href="#">Kitchen</a></li>
-                <li><a class="dropdown-item" href="#">Decoration</a></li>
+                <li><a class="dropdown-item" href="index.php#Furniture">Furniture</a></li>
+                <li><a class="dropdown-item" href="index.php#Storage">Storage</a></li>
+                <li><a class="dropdown-item" href="index.php#Kitchen">Kitchen</a></li>
+                <li><a class="dropdown-item" href="index.php#Decoration">Decoration</a></li>
                 <li>
                   <hr class="dropdown-divider">
                 </li>
-                <li><a class="dropdown-item" href="#">Others</a></li>
+                <li><a class="dropdown-item" href="index.php#Others">Others</a></li>
               </ul>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="my_purchase.php">My Purchase</a>
             </li>
 
           <?php } else { ?>
@@ -73,6 +73,9 @@
                 <li><a class="dropdown-item" href="stockManagement_add.php">Add product</a></li>
                 <li><a class="dropdown-item" href="stockManagement_list.php">Product List</a></li>
               </ul>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" aria-current="page" href="refund_admin.php">Refund Management</a>
             </li>
           <?php } ?>
         </ul>

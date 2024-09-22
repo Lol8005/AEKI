@@ -91,7 +91,7 @@ contract AdminManagement {
     }
 
     function isAdmin(address _address) public view returns(bool){
-        return admins[_address].status == AdminStatus.Active || (admins[_address].status == AdminStatus.Resigned == admins[_address].disableTime < block.timestamp);
+        return admins[_address].status == AdminStatus.Active || admins[_address].status == AdminStatus.Resigned;
     }
 
     function isSuperAdmin(address _address) public view returns(bool){

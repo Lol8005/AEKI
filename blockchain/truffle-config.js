@@ -69,6 +69,16 @@ module.exports = {
      port: 7545,            // Standard Ethereum port (default: none)
      network_id: "*",       // Any network (default: none)
     },
+
+    // Sepolia test network
+    sepolia: {
+      provider: () => new HDWalletProvider(
+        private_key, 
+        `NODE_ENDPOINT`
+      ),
+      network_id: 11155111, // Sepolia's network id
+    },
+    
     //
     // An additional network, but with some advanced options…
     // advanced: {

@@ -5,7 +5,7 @@ import "./AdminManagement.sol";
 
 contract StockManagement {
     address public immutable superAdmin;
-    AdminManagement adminManagement;
+    AdminManagement public adminManagement;
 
     constructor(address _adminManagementAddress) {
         superAdmin = msg.sender;
@@ -63,7 +63,7 @@ contract StockManagement {
         ProductCategory productCategory,
         uint256 launchEpochTime,
         uint256 discontinueTime
-    ) public onlyActiveAdmin {
+    ) external onlyActiveAdmin {
         require(price > 0, "Invalid price");
         require(quantity > 0, "Invalid quantity");
 
@@ -116,7 +116,7 @@ contract StockManagement {
     function restockProduct(
         bytes32 productHash,
         uint32 quantity
-    ) public onlyActiveAdmin {
+    ) external onlyActiveAdmin {
         bool isProductOnSale_bool = isProductOnSale(productHash);
         bool isProductGoingToLaunch_bool = isProductGoingToLaunch(productHash);
 
@@ -128,13 +128,13 @@ contract StockManagement {
 
         product_map[productHash].quantity += quantity;
 
-        product_map[productHash].productStatus == ProductStatus.Active;
+        product_map[productHash].productStatus = ProductStatus.Active;
     }
 
     function discontinueItem(
         bytes32 productHash,
         uint256 discontinueTime
-    ) public onlyActiveAdmin {
+    ) external onlyActiveAdmin {
         bool isProductOnSale_bool = isProductOnSale(productHash);
         bool isProductGoingToLaunch_bool = isProductGoingToLaunch(productHash);
 
@@ -213,7 +213,7 @@ contract StockManagement {
         return product_map[productHash].productStatus == ProductStatus.ReadyToLaunch;
     }
 
-    function getProductList() public view returns(Product[] memory, Product[] memory, Product[] memory) {
+    function getProductList() external view returns(Product[] memory, Product[] memory, Product[] memory) {
         Product[] memory onSale = new Product[](onSale_productHash.length);
         Product[] memory goingToLaunch = new Product[](goingToLaunch_productHash.length);
         Product[] memory discontinueProduct = new Product[](discontinueProduct_productHash.length);
@@ -233,7 +233,7 @@ contract StockManagement {
         return (onSale, goingToLaunch, discontinueProduct);
     }
 
-    function updateProductStatus() public {
+    function updateProductStatus() external {
         require(msg.sender == superAdmin, "Only super admin are allow to perform this action");
 
         for (uint i = 0; i < goingToLaunch_productHash.length; i++) {
@@ -266,9 +266,13 @@ contract StockManagement {
         }
     }
 
-    function returnProductPrice(bytes32 productHash) public view returns(uint32){
+    function returnProductPrice(bytes32 productHash) external view returns(uint32){
         require(isProductOnSale(productHash), "Not on sale");
 
         return product_map[productHash].price;
+    }
+
+    function returnProductLaunchTime(bytes32 productHash) external view returns(uint256){
+        return product_map[productHash].launchTime;
     }
 }

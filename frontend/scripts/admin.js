@@ -3,6 +3,8 @@ import {
 	AdminManagementAddress,
 	StockManagementAbi,
 	StockManagementAddress,
+	purchaseProductAbi,
+	purchaseProductAddress
 } from "./contractData.js";
 import { ethers } from "./ethers-v6.13.2.min.js";
 
@@ -42,6 +44,14 @@ async function checkGotAccess() {
 				} else {
 					window.location.href = "index.php";
 				}
+			}
+
+			if (
+				(!isSuperAdmin && !isAdmin) && (window.location.pathname.split("/").at(-1) === "refund_admin.php" || window.location.pathname.split("/").at(-1) === "stockManagement_add.php" || window.location.pathname.split("/").at(-1) === "stockManagement_list.php")
+			) {
+				alert("You don't have the access to this page");
+
+				window.location.href = "index.php";
 			}
 		} catch (error) {
 			console.log(error);
@@ -129,8 +139,13 @@ window.addNewAdmin = async function addNewAdmin() {
 
 			addNewAdminToTable(document.getElementById("adminAddress").value);
 		} catch (error) {
-			alert("Transaction failed.");
-			console.log(error);
+			console.log(error)
+
+			if(error.reason == "rejected") {
+
+			}else{
+				alert("Transaction failed.");
+			}
 		}
 	} else {
 		console.error("Browser wallet not detected!!!");
@@ -195,8 +210,13 @@ window.adminListTableBtn = async function adminListTableBtn(_address) {
 				);
 			}
 		} catch (error) {
-			alert("Transaction failed.");
-			console.log(error);
+			console.log(error)
+
+			if(error.reason == "rejected") {
+
+			}else{
+				alert("Transaction failed.");
+			}
 		}
 	} else {
 		console.error("Browser wallet not detected!!!");
@@ -313,8 +333,13 @@ window.addNewProduct = async function addNewProduct() {
 
 			//addNewAdminToTable(document.getElementById("adminAddress").value);
 		} catch (error) {
-			alert("Transaction failed.");
-			console.log(error);
+			console.log(error)
+
+			if(error.reason == "rejected") {
+
+			}else{
+				alert("Transaction failed.");
+			}
 		}
 	} else {
 		console.error("Browser wallet not detected!!!");
@@ -457,8 +482,13 @@ window.updateQuantity = async function updateQuantity(uniqueHash) {
 
 			await stockManagementContract.restockProduct(uniqueHash, quantity);
 		} catch (error) {
-			alert("Transaction failed.");
-			console.log(error);
+			console.log(error)
+
+			if(error.reason == "rejected") {
+
+			}else{
+				alert("Transaction failed.");
+			}
 		}
 	} else {
 		console.error("Browser wallet not detected!!!");
@@ -496,8 +526,13 @@ window.discontinueProduct = async function discontinueProduct(uniqueHash) {
 				discontinueTime
 			);
 		} catch (error) {
-			alert("Transaction failed.");
-			console.log(error);
+			console.log(error)
+
+			if(error.reason == "rejected") {
+
+			}else{
+				alert("Transaction failed.");
+			}
 		}
 	} else {
 		console.error("Browser wallet not detected!!!");
@@ -522,6 +557,166 @@ window.updateProductStatus = async function updateProductStatus(){
 		} catch (error) {
 			alert("Transaction failed.");
 			console.log(error);
+		}
+	} else {
+		console.error("Browser wallet not detected!!!");
+	}
+}
+
+
+
+async function updateRequestRefundList() {
+	if (typeof window.ethereum !== "undefined") {
+		try {
+			// Connect to Ethereum
+			const provider = new ethers.BrowserProvider(window.ethereum);
+			const signer = await provider.getSigner();
+
+			// Create an instance of the contract
+			const purchaseProductContract = new ethers.Contract(
+				purchaseProductAddress,
+				purchaseProductAbi,
+				provider
+			);
+
+			const requestRefunds = await purchaseProductContract.getRequestRefundProduct();
+
+			const tableBody = document.getElementById("request_refund_list_table");
+			for (let index = 0; index < requestRefunds.length; index++) {
+				const refund = requestRefunds[index];
+
+				const row = document.createElement("tr");
+
+				row.innerHTML = `
+				<td>${refund.user}</td>
+				<td>${refund.purchaseHash}</td>
+				<td>
+					<button class="btn btn-primary" onclick="approveRefundRequest('${
+						refund.purchaseHash
+					}')">Approve</button>
+					<button class="btn btn-danger" onclick="rejectRefundRequest('${
+						refund.purchaseHash
+					}')">Reject</button>
+					<button class="btn btn-danger" onclick="banAccountRequestRefund('${
+						refund.user
+					}', '${refund.purchaseHash}')">Ban</button>
+				</td>
+				`;
+
+				tableBody.appendChild(row);
+			}
+		} catch (error) {
+			alert("Transaction failed.");
+			console.log(error);
+		}
+	} else {
+		console.error("Browser wallet not detected!!!");
+	}
+}
+
+if (window.location.pathname.split("/").at(-1) === "refund_admin.php") {
+	updateRequestRefundList();
+}
+
+window.approveRefundRequest = async function approveRefundRequest(_purchaseHash){
+	if (typeof window.ethereum !== "undefined") {
+		try {
+			// Connect to Ethereum
+			const provider = new ethers.BrowserProvider(window.ethereum);
+			const signer = await provider.getSigner();
+
+			// Create an instance of the contract
+			const purchaseProductContract = new ethers.Contract(
+				purchaseProductAddress,
+				purchaseProductAbi,
+				signer
+			);
+
+			const tx = await purchaseProductContract.approveRejectRefund(_purchaseHash, 3);
+			await tx.wait();
+
+			window.location.reload();
+		} catch (error) {
+			console.log(error)
+
+			if(error.reason == "rejected") {
+
+			}else{
+				alert("Transaction failed.");
+			}
+		}
+	} else {
+		console.error("Browser wallet not detected!!!");
+	}
+}
+
+window.rejectRefundRequest = async function rejectRefundRequest(_purchaseHash){
+	if (typeof window.ethereum !== "undefined") {
+		try {
+			// Connect to Ethereum
+			const provider = new ethers.BrowserProvider(window.ethereum);
+			const signer = await provider.getSigner();
+
+			// Create an instance of the contract
+			const purchaseProductContract = new ethers.Contract(
+				purchaseProductAddress,
+				purchaseProductAbi,
+				signer
+			);
+
+			const tx = await purchaseProductContract.approveRejectRefund(_purchaseHash, 4);
+
+			await tx.wait();
+
+			window.location.reload();
+		} catch (error) {
+			console.log(error)
+
+			if(error.reason == "rejected") {
+
+			}else{
+				alert("Transaction failed.");
+			}
+		}
+	} else {
+		console.error("Browser wallet not detected!!!");
+	}
+}
+
+window.banAccountRequestRefund = async function rejectRefundRequest(user, _purchaseHash){
+	if (typeof window.ethereum !== "undefined") {
+		try {
+			// Connect to Ethereum
+			const provider = new ethers.BrowserProvider(window.ethereum);
+			const signer = await provider.getSigner();
+
+			// Create an instance of the contract
+			const purchaseProductContract = new ethers.Contract(
+				purchaseProductAddress,
+				purchaseProductAbi,
+				signer
+			);
+
+			let reason = prompt(
+				"Why ban account " + user + " (leave empty to cancel)",
+				""
+			);
+
+			if (reason == null || reason == "") return;
+
+			const tx = await purchaseProductContract.banAccount(user, _purchaseHash, reason);
+
+			await tx.wait();
+
+			window.location.reload();
+		} catch (error) {
+			console.log(error)
+
+			if(error.reason == "rejected") {
+
+			}else{
+				alert("Transaction failed.");
+			}
 		}
 	} else {
 		console.error("Browser wallet not detected!!!");
