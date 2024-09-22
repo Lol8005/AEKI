@@ -3,6 +3,10 @@ import {
 	StockManagementAddress,
 	purchaseProductAbi,
 	purchaseProductAddress,
+	refundAdminAbi,
+	refundAdminAddress,
+	refundClientAbi,
+	refundClientAddress
 } from "./contractData.js";
 import { ethers } from "./ethers-v6.13.2.min.js";
 
@@ -17,6 +21,12 @@ window.getUserPurchaseListJS = async function getUserPurchaseListJS() {
 				provider
 			);
 
+			const refundAdminContract = new ethers.Contract(
+				refundAdminAddress,
+				refundAdminAbi,
+				provider
+			);
+
 			const signer = await provider.getSigner();
 
 			const purchasedProducts =
@@ -28,14 +38,15 @@ window.getUserPurchaseListJS = async function getUserPurchaseListJS() {
 			updatePurchasedProductList(purchasedProducts);
 
 
-			const isBanned = await purchaseProductContract.isAccountBanned(await (await signer).getAddress());
+			const isBanned = await refundAdminContract.isAccountBanned(await (await signer).getAddress());
 			if(isBanned){
-				const banInfo = await purchaseProductContract.banList_map(await (await signer).getAddress());
+				const banInfo = await refundAdminContract.banList_map(await (await signer).getAddress());
 
 				alert(`Your account has been banned. \n Reason: ${banInfo[1]} \n Got banned at ${epochToReadableDateConverter(banInfo[0])} \n Purchase hash: ${banInfo[2]}`);
 			}
 		} catch (error) {
 			alert("Transaction failed.");
+			console.log(error);
 		}
 	} else {
 		console.error("Browser wallet not detected!!!");
@@ -162,13 +173,13 @@ window.requestForRefund = async function requestForRefund(purchaseHash){
 			const signer = await provider.getSigner();
 
 			// Create an instance of the contract
-			const purchaseProductContract = new ethers.Contract(
-				purchaseProductAddress,
-				purchaseProductAbi,
+			const refundClientContract = new ethers.Contract(
+				refundClientAddress,
+				refundClientAbi,
 				signer
 			);
 			
-			const tx = await purchaseProductContract.refundProduct(purchaseHash);
+			const tx = await refundClientContract.refundProduct(purchaseHash);
 
 			await tx.wait();
 			window.location.reload();
@@ -189,13 +200,13 @@ window.requestForCancel = async function requestForCancel(purchaseHash){
 			const signer = await provider.getSigner();
 
 			// Create an instance of the contract
-			const purchaseProductContract = new ethers.Contract(
-				purchaseProductAddress,
-				purchaseProductAbi,
+			const refundClientContract = new ethers.Contract(
+				refundClientAddress,
+				refundClientAbi,
 				signer
 			);
 			
-			const tx = await purchaseProductContract.cancelRefund(purchaseHash);
+			const tx = await refundClientContract.cancelRefund(purchaseHash);
 
 			await tx.wait();
 			window.location.reload();

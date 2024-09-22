@@ -4,7 +4,11 @@ import {
 	StockManagementAbi,
 	StockManagementAddress,
 	purchaseProductAbi,
-	purchaseProductAddress
+	purchaseProductAddress,
+	refundClientAbi,
+	refundClientAddress,
+	refundAdminAbi,
+	refundAdminAddress
 } from "./contractData.js";
 import { ethers } from "./ethers-v6.13.2.min.js";
 
@@ -573,13 +577,13 @@ async function updateRequestRefundList() {
 			const signer = await provider.getSigner();
 
 			// Create an instance of the contract
-			const purchaseProductContract = new ethers.Contract(
-				purchaseProductAddress,
-				purchaseProductAbi,
+			const refundClientContract = new ethers.Contract(
+				refundClientAddress,
+				refundClientAbi,
 				provider
 			);
 
-			const requestRefunds = await purchaseProductContract.getRequestRefundProduct();
+			const requestRefunds = await refundClientContract.getRequestRefundProduct();
 
 			const tableBody = document.getElementById("request_refund_list_table");
 			for (let index = 0; index < requestRefunds.length; index++) {
@@ -626,13 +630,13 @@ window.approveRefundRequest = async function approveRefundRequest(_purchaseHash)
 			const signer = await provider.getSigner();
 
 			// Create an instance of the contract
-			const purchaseProductContract = new ethers.Contract(
-				purchaseProductAddress,
-				purchaseProductAbi,
+			const refundAdminContract = new ethers.Contract(
+				refundAdminAddress,
+				refundAdminAbi,
 				signer
 			);
 
-			const tx = await purchaseProductContract.approveRejectRefund(_purchaseHash, 3);
+			const tx = await refundAdminContract.approveRejectRefund(_purchaseHash, 3);
 			await tx.wait();
 
 			window.location.reload();
@@ -658,13 +662,13 @@ window.rejectRefundRequest = async function rejectRefundRequest(_purchaseHash){
 			const signer = await provider.getSigner();
 
 			// Create an instance of the contract
-			const purchaseProductContract = new ethers.Contract(
-				purchaseProductAddress,
-				purchaseProductAbi,
+			const refundAdminContract = new ethers.Contract(
+				refundAdminAddress,
+				refundAdminAbi,
 				signer
 			);
 
-			const tx = await purchaseProductContract.approveRejectRefund(_purchaseHash, 4);
+			const tx = await refundAdminContract.approveRejectRefund(_purchaseHash, 4);
 
 			await tx.wait();
 
@@ -691,9 +695,9 @@ window.banAccountRequestRefund = async function rejectRefundRequest(user, _purch
 			const signer = await provider.getSigner();
 
 			// Create an instance of the contract
-			const purchaseProductContract = new ethers.Contract(
-				purchaseProductAddress,
-				purchaseProductAbi,
+			const refundAdminContract = new ethers.Contract(
+				refundAdminAddress,
+				refundAdminAbi,
 				signer
 			);
 
@@ -704,7 +708,7 @@ window.banAccountRequestRefund = async function rejectRefundRequest(user, _purch
 
 			if (reason == null || reason == "") return;
 
-			const tx = await purchaseProductContract.banAccount(user, _purchaseHash, reason);
+			const tx = await refundAdminContract.banAccount(user, _purchaseHash, reason);
 
 			await tx.wait();
 

@@ -3,29 +3,7 @@ pragma solidity ^0.8.0;
 
 import "./StockManagement.sol";
 
-contract purchaseProduct {
-    address public immutable superAdmin;
-    StockManagement stockManagement;
-    AdminManagement adminManagement;
-
-    uint128 private constant ethToMYR = 10881;
-    uint128 private constant ethToWei = 1e18;
-
-    address[] public buyer;
-    mapping(address => purchaseDetail[]) public purchaseRecord;
-
-    uint256[] public reminderTime;
-    mapping(uint256 => address[]) public reminderList;
-
-    event purchaseEvent(
-        address user,
-        bytes32 purchaseHash,
-        bytes32 productHash,
-        uint32 quantity
-    );
-
-    event callReminderEvent(address[] user, uint256 reminderTime);
-
+library shared {
     enum PurchaseStatus {
         NotPurchase,        // 0
         Purchased,          // 1
@@ -40,14 +18,47 @@ contract purchaseProduct {
         bytes32 productHash;
         uint32 quantity;
         uint256 purchaseTime;
-        PurchaseStatus purchaseStatus;
+        shared.PurchaseStatus purchaseStatus;
         address user;
     }
+}
+
+contract PurchaseProduct {
+    address public immutable superAdmin;
+    StockManagement stockManagement;
+    AdminManagement adminManagement;
+    address refundClient_addres;
+    address refundAdmin_addres;
+
+    uint128 private constant ethToMYR = 10881;
+    uint128 private constant ethToWei = 1e18;
+
+    address[] public buyer;
+    mapping(address => shared.purchaseDetail[]) public purchaseRecord;
+
+    uint256[] public reminderTime;
+    mapping(uint256 => address[]) public reminderList;
+
+    event purchaseEvent(
+        address user,
+        bytes32 purchaseHash,
+        bytes32 productHash,
+        uint32 quantity
+    );
+
+    event callReminderEvent(address[] user, uint256 reminderTime);
 
     constructor(address _stockManagementAddress, address _adminManagement) {
         superAdmin = msg.sender;
         stockManagement = StockManagement(_stockManagementAddress);
         adminManagement = AdminManagement(_adminManagement);
+    }
+
+    function setRefundAddress(address _refundclient, address _refundAdmin) public onlyActiveAdmin{
+        require(address(refundClient_addres) == address(0), "Already set");
+        require(address(refundAdmin_addres) == address(0), "Already set");
+        refundClient_addres = _refundclient;
+        refundAdmin_addres = _refundAdmin;
     }
 
     function widthdraw() external {
@@ -86,12 +97,12 @@ contract purchaseProduct {
         }
 
         purchaseRecord[msg.sender].push(
-            purchaseDetail(
+            shared.purchaseDetail(
                 _purchaseHash,
                 productHash,
                 quantity,
                 block.timestamp,
-                PurchaseStatus.Purchased,
+                shared.PurchaseStatus.Purchased,
                 msg.sender
             )
         );
@@ -107,7 +118,7 @@ contract purchaseProduct {
         address user,
         bytes32 purchaseHash
     ) external view returns (bool) {
-        purchaseDetail[] memory records = purchaseRecord[user];
+        shared.purchaseDetail[] memory records = purchaseRecord[user];
 
         for (uint i = 0; i < records.length; i++) {
             if (records[i].purchaseHash == purchaseHash) {
@@ -120,7 +131,7 @@ contract purchaseProduct {
 
     function getUserPurchaseList(
         address user
-    ) public view returns (purchaseDetail[] memory) {
+    ) public view returns (shared.purchaseDetail[] memory) {
         return purchaseRecord[user];
     }
 
@@ -186,46 +197,32 @@ contract purchaseProduct {
     //timelock every day
     function updatePurchasedStatus() external {
         for (uint i = 0; i < buyer.length; i++) {
-            purchaseDetail[] storage _purchaseRecords = purchaseRecord[buyer[i]];
+            shared.purchaseDetail[] storage _purchaseRecords = purchaseRecord[buyer[i]];
 
             for (uint j = 0; j < _purchaseRecords.length; j++) {
-                if(_purchaseRecords[j].purchaseTime + 30 days <= block.timestamp && _purchaseRecords[j].purchaseStatus == PurchaseStatus.Purchased){
-                    _purchaseRecords[j].purchaseStatus = PurchaseStatus.NotRefundable;
+                if(_purchaseRecords[j].purchaseTime + 30 days <= block.timestamp && _purchaseRecords[j].purchaseStatus == shared.PurchaseStatus.Purchased){
+                    _purchaseRecords[j].purchaseStatus = shared.PurchaseStatus.NotRefundable;
                 }
             }
         }
     }
 
-    /*
-    function getPurchaseDetails(address user, bytes32 _purchaseHash) public view returns (purchaseDetail memory) {
-        for (uint i = 0; i < purchaseRecord[user].length; i++) {
-            if(purchaseRecord[user][i].purchaseHash == _purchaseHash){
-                return purchaseRecord[user][i];
-            }
+    function userSetPurchaseRecordStatus(address user, uint index, bytes32 _purchaseHash, shared.PurchaseStatus status) external {
+        require(
+            msg.sender == refundClient_addres || adminManagement.isAdmin(msg.sender) || msg.sender == superAdmin,
+            "Only contract can perform this action"
+        );
+
+        require(purchaseRecord[user][index].purchaseHash ==_purchaseHash, "Invalid purchase hash");
+        require(status == shared.PurchaseStatus.Refund_proccessing || status == shared.PurchaseStatus.NotRefundable, "Invalid status");
+
+        if(status == shared.PurchaseStatus.Refund_proccessing){
+            require(purchaseRecord[user][index].purchaseStatus == shared.PurchaseStatus.Purchased, "Invalid status");
+        }else{
+            require(purchaseRecord[user][index].purchaseStatus == shared.PurchaseStatus.Refund_proccessing, "Invalid status");
         }
 
-        revert("Didn't purchase the product");
-    }
-
-    function didUserBuyProduct(address user, bytes32 _purchaseHash) public view returns (bool){
-        for (uint i = 0; i < purchaseRecord[user].length; i++) {
-            if(purchaseRecord[user][i].purchaseHash == _purchaseHash){
-                return true;
-            }
-        }
-
-        return false;
-    } */
-  
-    // REFUND 
-    purchaseDetail[] public requestRefundProduct;
-    address[] banList;
-    mapping(address => banInfo) public banList_map; //time when get ban
-
-    struct banInfo{
-        uint256 timeGotBan;
-        string reason;
-        bytes32 purchaseHash;
+        purchaseRecord[user][index].purchaseStatus = status;
     }
 
     modifier onlyActiveAdmin() {
@@ -236,149 +233,22 @@ contract purchaseProduct {
         _;
     }
 
-    function didPurchaseAllowToRefund(address user, bytes32 _purchaseHash) public view returns(bool) {
-        for (uint i = 0; i < purchaseRecord[user].length; i++) {
-            if(purchaseRecord[user][i].purchaseHash == _purchaseHash && purchaseRecord[user][i].purchaseStatus == PurchaseStatus.Purchased){
-                return true;
-            }
+    function adminSetPurchaseRecordStatus(address user, uint index, bytes32 _purchaseHash, shared.PurchaseStatus status, uint amountRefund) external {
+        require(
+            msg.sender == refundAdmin_addres || adminManagement.isAdmin(msg.sender) || msg.sender == superAdmin,
+            "Only contract can perform this action"
+        );
+
+        require(purchaseRecord[user][index].purchaseHash ==_purchaseHash, "Invalid purchase hash");
+        require(status == shared.PurchaseStatus.Refunded || status == shared.PurchaseStatus.RequestDecline, "Invalid status");
+
+        require(purchaseRecord[user][index].purchaseStatus == shared.PurchaseStatus.Refund_proccessing, "Invalid status");
+
+        purchaseRecord[user][index].purchaseStatus = status;
+
+        if(status == shared.PurchaseStatus.Refunded){
+            (bool success, ) = (payable(user)).call{value: amountRefund}("");
+            require(success, "transaction failed");
         }
-
-        return false;
-    }
-
-    function refundProduct(bytes32 _purchaseHash) public {
-        require(!isAccountBanned(msg.sender), "Your account has been banned, can't proceed");
-
-        for (uint i = 0; i < purchaseRecord[msg.sender].length; i++) {
-            if(purchaseRecord[msg.sender][i].purchaseHash == _purchaseHash && purchaseRecord[msg.sender][i].purchaseStatus == PurchaseStatus.Purchased){
-                purchaseRecord[msg.sender][i].purchaseStatus = PurchaseStatus.Refund_proccessing;
-
-                requestRefundProduct.push(purchaseRecord[msg.sender][i]);
-                return;
-            }
-        }
-
-        revert("Purchased product is not aligible to refund");
-    }
-
-    function cancelRefund(bytes32 _purchaseHash) public {
-        for (uint i = 0; i < purchaseRecord[msg.sender].length; i++) {
-            if(purchaseRecord[msg.sender][i].purchaseHash == _purchaseHash && purchaseRecord[msg.sender][i].purchaseStatus == PurchaseStatus.Refund_proccessing){
-                purchaseRecord[msg.sender][i].purchaseStatus = PurchaseStatus.NotRefundable;
-
-                remove_requestRefundProduct(_purchaseHash);
-                return;
-            }
-        }
-
-        revert("Purchased product is not aligible to refund");
-    }
-
-    function approveRejectRefund(bytes32 _purchaseHash, PurchaseStatus _purchaseStatus) public onlyActiveAdmin {
-        require(_purchaseStatus == PurchaseStatus.Refunded || _purchaseStatus == PurchaseStatus.RequestDecline, "Invalid purchase status");
-
-        purchaseDetail memory _purchaseDetail;
-
-        for (uint i = 0; i < requestRefundProduct.length; i++) {
-            if (requestRefundProduct[i].purchaseHash == _purchaseHash) {
-                _purchaseDetail = requestRefundProduct[i];
-
-                break;
-            }
-        }
-
-        require(_purchaseDetail.user != address(0), "Refund request not found");
-
-        for (uint i = 0; i < purchaseRecord[_purchaseDetail.user].length; i++) {
-            if(purchaseRecord[_purchaseDetail.user][i].purchaseHash == _purchaseHash){
-                purchaseRecord[_purchaseDetail.user][i].purchaseStatus = _purchaseStatus;
-
-                if(_purchaseStatus == PurchaseStatus.Refunded){
-                    uint amounRefund = (stockManagement.returnProductPrice(_purchaseDetail.productHash) * ethToWei * _purchaseDetail.quantity) / ethToMYR;
-
-                    (bool success, ) = (payable(_purchaseDetail.user)).call{value: amounRefund}("");
-
-                    require(success, "transaction failed");
-                }
-
-                remove_requestRefundProduct(purchaseRecord[_purchaseDetail.user][i].purchaseHash);
-
-                break;
-            }
-        }
-    }
-
-    function remove_requestRefundProduct(bytes32 _purchaseHash) private {
-        uint index = 0;
-
-        for (uint i = 0; i < requestRefundProduct.length; i++) {
-            if (requestRefundProduct[i].purchaseHash == _purchaseHash) {
-                index = i;
-                break;
-            }
-        }
-
-        requestRefundProduct[index] = requestRefundProduct[
-            requestRefundProduct.length - 1
-        ];
-
-        requestRefundProduct.pop();
-    }
-
-    function getRequestRefundProduct() external view returns(purchaseDetail[] memory){
-        return requestRefundProduct;
-    }
-
-    function isAccountBanned(address user) public view returns(bool) {
-        for (uint i = 0; i < banList.length; i++) {
-            if(banList[i] == user){
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    function banAccount(address user, bytes32 _purchaseHash, string memory _reason) external onlyActiveAdmin {
-        if(!isAccountBanned(user)){
-            banList.push(user);
-        }
-
-        banList_map[user].timeGotBan = block.timestamp;
-        banList_map[user].reason = _reason;
-        banList_map[user].purchaseHash = _purchaseHash;
-
-        approveRejectRefund(_purchaseHash, PurchaseStatus.RequestDecline);
-    }
-
-    //timelock every day
-    function unbanAccount() external {
-        address[] memory _temp = new address[](banList.length);
-        uint64 index = 0;
-
-        for (uint i = 0; i < banList.length; i++) {
-            if(banList_map[banList[i]].timeGotBan + 7 days <= block.timestamp){
-                _temp[index] = banList[i];
-                index++;
-            }
-        }
-
-        for (uint i = 0; i < index; i++) {
-            remove_banList(_temp[i]);
-        }
-    }
-
-    function remove_banList(address user) private {
-        uint index = 0;
-
-        for (uint i = 0; i < banList.length; i++) {
-            if (banList[i] == user) {
-                index = i;
-                break;
-            }
-        }
-
-        banList[index] = banList[banList.length - 1];
-        banList.pop();
     }
 }
