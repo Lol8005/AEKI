@@ -1,8 +1,8 @@
 <?php
-    session_start();
-    $_SESSION["isAdmin"] = true;
+session_start();
+$_SESSION["isAdmin"] = true;
 
-    include 'header.php';
+include 'header.php';
 ?>
 
 <!DOCTYPE html>
@@ -29,28 +29,21 @@
                 </div>
 
                 <div class="row text-center d-flex align-items-center justify-content-center">
-                    <div>
-                        <div class="needs-validation" novalidate="">
-                            <div class="row">
-                                <div class="mb-3">
-                                    <label for="adminAddress">New Admin Address:</label>
-                                    <input type="text" class="form-control" id="adminAddress" placeholder="" value="" required="">
-                                </div>
-                                <button class="btn btn-primary btn-lg btn-block" type="submit" onclick="addNewAdmin()">Add</button>
-                                </form>
-                            </div>
-                        </div>
-
+                    <div class="mb-3">
+                        <label for="adminAddress">New Admin Address:</label>
+                        <input type="text" class="form-control" id="adminAddress" placeholder="" value="" required="">
                     </div>
+                    <button class="btn btn-primary btn-lg btn-block" type="submit" onclick="addNewAdmin()">Add</button>
                 </div>
             </div>
 
-            <div class="container" style="width: 40%">
+            <div class="container" style="width: 70%">
                 <h2>Admin List</h2>
                 <table class="table">
                     <thead>
                         <tr>
                             <th>Active Admin</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="admin_list_table">
@@ -60,12 +53,23 @@
                     <thead>
                         <tr>
                             <th>Resigned Admin</th>
+                            <th>Disable Time</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="resigned_admin_list_table">
                     </tbody>
                 </table>
-
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Fired Admin</th>
+                            <th>Fired Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fired_admin_list_table">
+                    </tbody>
+                </table>
             </div>
 
             <div class="text-center">

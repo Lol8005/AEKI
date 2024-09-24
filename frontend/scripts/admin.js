@@ -8,7 +8,7 @@ import {
 	refundClientAbi,
 	refundClientAddress,
 	refundAdminAbi,
-	refundAdminAddress
+	refundAdminAddress,
 } from "./contractData.js";
 import { ethers } from "./ethers-v6.13.2.min.js";
 
@@ -51,7 +51,14 @@ async function checkGotAccess() {
 			}
 
 			if (
-				(!isSuperAdmin && !isAdmin) && (window.location.pathname.split("/").at(-1) === "refund_admin.php" || window.location.pathname.split("/").at(-1) === "stockManagement_add.php" || window.location.pathname.split("/").at(-1) === "stockManagement_list.php")
+				!isSuperAdmin &&
+				!isAdmin &&
+				(window.location.pathname.split("/").at(-1) ===
+					"refund_admin.php" ||
+					window.location.pathname.split("/").at(-1) ===
+						"stockManagement_add.php" ||
+					window.location.pathname.split("/").at(-1) ===
+						"stockManagement_list.php")
 			) {
 				alert("You don't have the access to this page");
 
@@ -71,6 +78,7 @@ async function getAdminList() {
 	if (typeof window.ethereum !== "undefined") {
 		try {
 			const provider = new ethers.BrowserProvider(window.ethereum);
+			const signer = await provider.getSigner();
 
 			const accounts = await window.ethereum.request({
 				method: "eth_requestAccounts",
@@ -80,6 +88,12 @@ async function getAdminList() {
 				AdminManagementAddress,
 				AdminManagementAbi,
 				provider
+			);
+
+			const adminContractSigner = new ethers.Contract(
+				AdminManagementAddress,
+				AdminManagementAbi,
+				signer
 			);
 
 			const adminList = await adminContract.viewAdminList();
@@ -99,12 +113,66 @@ async function getAdminList() {
 				const root = document.getElementById(
 					"resigned_admin_list_table"
 				);
-				const tr = document.createElement("tr");
-				const td = document.createElement("td");
+				// const tr = document.createElement("tr");
+				// const td = document.createElement("td");
 
-				const address = document.createTextNode(admin);
-				td.appendChild(address);
-				tr.appendChild(td);
+				// const address = document.createTextNode(admin);
+				// td.appendChild(address);
+				// tr.appendChild(td);
+				// root.appendChild(tr);
+
+				const tr = document.createElement("tr");
+				// const td = document.createElement("td");
+
+				const disableTime = epochToReadableDateConverter(
+					(await adminContractSigner.admins(admin))[1]
+				)
+
+				console.log(disableTime);
+
+				tr.innerHTML = `
+					<td>${admin}</td>
+					<td>${disableTime}</td>
+					<td style="width: 20%">
+						<button class="btn btn-warning text-center" onclick="adminTableResignButton('${admin}')">Modify</button>
+						<button class="btn btn-success text-center" onclick="cancelAdminResignationBtn('${admin}')">Cancel</button>
+					<td>
+				`;
+
+				//root.appendChild(tr.appendChild(td.appendChild(btn)));
+
+				//td.appendChild(btn);
+				//tr.appendChild(td);
+				root.appendChild(tr);
+			}
+
+			for (const admin of adminList[2]) {
+				if (
+					admin == "0x0000000000000000000000000000000000000000" ||
+					admin == ""
+				) {
+					continue;
+				}
+
+				const root = document.getElementById(
+					"fired_admin_list_table"
+				);
+
+				const tr = document.createElement("tr");
+
+				const disableTime = epochToReadableDateConverter(
+					(await adminContractSigner.admins(admin))[1]
+				)
+
+				tr.innerHTML = `
+					<td>${admin}</td>
+					<td>${disableTime}</td>
+				`;
+
+				//root.appendChild(tr.appendChild(td.appendChild(btn)));
+
+				//td.appendChild(btn);
+				//tr.appendChild(td);
 				root.appendChild(tr);
 			}
 		} catch (error) {
@@ -137,17 +205,18 @@ window.addNewAdmin = async function addNewAdmin() {
 				signer
 			);
 
-			await adminContract.registerNewAdmin(
+			const tx = await adminContract.registerNewAdmin(
 				document.getElementById("adminAddress").value
 			);
 
+			await tx.wait();
+
 			addNewAdminToTable(document.getElementById("adminAddress").value);
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 
-			if(error.reason == "rejected") {
-
-			}else{
+			if (error.reason == "rejected") {
+			} else {
 				alert("Transaction failed.");
 			}
 		}
@@ -166,25 +235,72 @@ function addNewAdminToTable(_address) {
 
 	const root = document.getElementById("admin_list_table");
 
-	const btn = document.createElement("button");
-	btn.className = "btn btn-light text-center";
-	btn.id = _address;
-	btn.style = "width: 100%";
-	btn.type = "button";
-	btn.innerHTML = _address;
-	btn.setAttribute("onclick", "adminListTableBtn('" + _address + "')");
+	// const btn = document.createElement("button");
+	// btn.className = "btn btn-light text-center";
+	// btn.id = _address;
+	// btn.style = "width: 100%";
+	// btn.type = "button";
+	// btn.innerHTML = _address;
+	// btn.setAttribute("onclick", "activeAdminTableResignButton('" + _address + "')");
 
 	const tr = document.createElement("tr");
-	const td = document.createElement("td");
+	// const td = document.createElement("td");
+
+	tr.innerHTML = `
+		<td>${_address}</td>
+		<td style="width: 20%"><button class="btn btn-danger text-center" onclick="adminTableResignButton('${_address}')">Resign</button><td>
+	`;
 
 	//root.appendChild(tr.appendChild(td.appendChild(btn)));
 
-	td.appendChild(btn);
-	tr.appendChild(td);
+	//td.appendChild(btn);
+	//tr.appendChild(td);
 	root.appendChild(tr);
 }
 
-window.adminListTableBtn = async function adminListTableBtn(_address) {
+window.adminTableResignButton = async function adminTableResignButton(_address) {
+		if (typeof window.ethereum !== "undefined") {
+			try {
+				const provider = new ethers.BrowserProvider(window.ethereum);
+
+				const signer = await provider.getSigner();
+
+				const adminContract = new ethers.Contract(
+					AdminManagementAddress,
+					AdminManagementAbi,
+					signer
+				);
+
+				let reply = prompt(
+					"Resign Date (Format: yyyy-MM-dd) \n Enter 0 or blank to fired instantly",
+					"0"
+				);
+
+				if (reply == null) return;
+
+				if (reply == "0" || reply == "") {
+					await adminContract.disableAdminAccess(_address, 0);
+				} else {
+					console.log("Resign Date: " + Date.parse(reply) / 1000);
+					await adminContract.disableAdminAccess(
+						_address,
+						Date.parse(reply) / 1000
+					);
+				}
+			} catch (error) {
+				console.log(error);
+
+				if (error.reason == "rejected") {
+				} else {
+					alert("Transaction failed.");
+				}
+			}
+		} else {
+			console.error("Browser wallet not detected!!!");
+		}
+	};
+
+window.cancelAdminResignationBtn = async function cancelAdminResignationBtn(address){
 	if (typeof window.ethereum !== "undefined") {
 		try {
 			const provider = new ethers.BrowserProvider(window.ethereum);
@@ -197,35 +313,24 @@ window.adminListTableBtn = async function adminListTableBtn(_address) {
 				signer
 			);
 
-			let reply = prompt(
-				"Resign Date (Format: yyyy-MM-dd) \n Enter 0 or blank to fired instantly",
-				"0"
-			);
+			const tx = await adminContract.cancelResignation(address);
 
-			if (reply == null) return;
+			await tx.wait();
 
-			if (reply == "0" || reply == "") {
-				await adminContract.disableAdminAccess(_address, 0);
-			} else {
-				console.log("Resign Date: " + Date.parse(reply) / 1000);
-				await adminContract.disableAdminAccess(
-					_address,
-					Date.parse(reply) / 1000
-				);
-			}
+			window.location.reload();
+
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 
-			if(error.reason == "rejected") {
-
-			}else{
+			if (error.reason == "rejected") {
+			} else {
 				alert("Transaction failed.");
 			}
 		}
 	} else {
 		console.error("Browser wallet not detected!!!");
 	}
-};
+}
 
 //TODO: check admin access still there, if not revoke access
 window.updateAdminAccess = async function updateAdminAccess() {
@@ -243,13 +348,17 @@ window.updateAdminAccess = async function updateAdminAccess() {
 
 			await adminContract.finalizeDisable();
 		} catch (error) {
-			alert("Transaction failed.");
 			console.log(error);
+
+			if (error.reason == "rejected") {
+			} else {
+				alert("Transaction failed.");
+			}
 		}
 	} else {
 		console.error("Browser wallet not detected!!!");
 	}
-}
+};
 
 window.addNewProduct = async function addNewProduct() {
 	if (typeof window.ethereum !== "undefined") {
@@ -337,11 +446,10 @@ window.addNewProduct = async function addNewProduct() {
 
 			//addNewAdminToTable(document.getElementById("adminAddress").value);
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 
-			if(error.reason == "rejected") {
-
-			}else{
+			if (error.reason == "rejected") {
+			} else {
 				alert("Transaction failed.");
 			}
 		}
@@ -412,7 +520,11 @@ function updateTable(tableId, products, status) {
             <td>RM ${product.price.toString()}</td>
             <td>${product.quantity.toString()}</td>
             <td>${getCategoryName(product.productCategory)}</td>
-			<td>${Number(product.discontinueTime) == 0 ? NaN : new Date(Number(product.discontinueTime) * 1000)}</td>
+			<td>${
+				Number(product.discontinueTime) == 0
+					? NaN
+					: new Date(Number(product.discontinueTime) * 1000)
+			}</td>
             <td>
                 <button class="btn btn-primary" onclick="updateQuantity('${
 					product.productUniqueHash
@@ -428,7 +540,11 @@ function updateTable(tableId, products, status) {
             <td>RM ${product.price.toString()}</td>
             <td>${product.quantity.toString()}</td>
             <td>${getCategoryName(product.productCategory)}</td>
-			<td>${Number(product.launchTime) == 0 ? NaN : new Date(Number(product.launchTime) * 1000)}</td>
+			<td>${
+				Number(product.launchTime) == 0
+					? NaN
+					: new Date(Number(product.launchTime) * 1000)
+			}</td>
             <td>
                 <button class="btn btn-primary" onclick="updateQuantity('${
 					product.productUniqueHash
@@ -486,11 +602,10 @@ window.updateQuantity = async function updateQuantity(uniqueHash) {
 
 			await stockManagementContract.restockProduct(uniqueHash, quantity);
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 
-			if(error.reason == "rejected") {
-
-			}else{
+			if (error.reason == "rejected") {
+			} else {
 				alert("Transaction failed.");
 			}
 		}
@@ -530,11 +645,10 @@ window.discontinueProduct = async function discontinueProduct(uniqueHash) {
 				discontinueTime
 			);
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 
-			if(error.reason == "rejected") {
-
-			}else{
+			if (error.reason == "rejected") {
+			} else {
 				alert("Transaction failed.");
 			}
 		}
@@ -543,7 +657,7 @@ window.discontinueProduct = async function discontinueProduct(uniqueHash) {
 	}
 };
 
-window.updateProductStatus = async function updateProductStatus(){
+window.updateProductStatus = async function updateProductStatus() {
 	if (typeof window.ethereum !== "undefined") {
 		try {
 			// Connect to Ethereum
@@ -565,9 +679,26 @@ window.updateProductStatus = async function updateProductStatus(){
 	} else {
 		console.error("Browser wallet not detected!!!");
 	}
+};
+
+function epochToReadableDateConverter(epochTime) {
+	const date = new Date(Number(epochTime) * 1000);
+
+	// Extract date components
+	const day = String(date.getDate()).padStart(2, "0");
+	const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are zero-based
+	const year = date.getFullYear();
+
+	// Extract time components
+	let hours = date.getHours();
+	const minutes = String(date.getMinutes()).padStart(2, "0");
+	const ampm = hours >= 12 ? "PM" : "AM";
+	hours = hours % 12; // Convert to 12-hour format
+	hours = hours ? String(hours).padStart(2, "0") : "12"; // The hour '0' should be '12'
+
+	// Format the final date string
+	return `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
 }
-
-
 
 async function updateRequestRefundList() {
 	if (typeof window.ethereum !== "undefined") {
@@ -583,9 +714,12 @@ async function updateRequestRefundList() {
 				provider
 			);
 
-			const requestRefunds = await refundClientContract.getRequestRefundProduct();
+			const requestRefunds =
+				await refundClientContract.getRequestRefundProduct();
 
-			const tableBody = document.getElementById("request_refund_list_table");
+			const tableBody = document.getElementById(
+				"request_refund_list_table"
+			);
 			for (let index = 0; index < requestRefunds.length; index++) {
 				const refund = requestRefunds[index];
 
@@ -595,15 +729,9 @@ async function updateRequestRefundList() {
 				<td>${refund.user}</td>
 				<td>${refund.purchaseHash}</td>
 				<td>
-					<button class="btn btn-primary" onclick="approveRefundRequest('${
-						refund.purchaseHash
-					}')">Approve</button>
-					<button class="btn btn-danger" onclick="rejectRefundRequest('${
-						refund.purchaseHash
-					}')">Reject</button>
-					<button class="btn btn-danger" onclick="banAccountRequestRefund('${
-						refund.user
-					}', '${refund.purchaseHash}')">Ban</button>
+					<button class="btn btn-primary" onclick="approveRefundRequest('${refund.purchaseHash}')">Approve</button>
+					<button class="btn btn-danger" onclick="rejectRefundRequest('${refund.purchaseHash}')">Reject</button>
+					<button class="btn btn-danger" onclick="banAccountRequestRefund('${refund.user}', '${refund.purchaseHash}')">Ban</button>
 				</td>
 				`;
 
@@ -622,7 +750,9 @@ if (window.location.pathname.split("/").at(-1) === "refund_admin.php") {
 	updateRequestRefundList();
 }
 
-window.approveRefundRequest = async function approveRefundRequest(_purchaseHash){
+window.approveRefundRequest = async function approveRefundRequest(
+	_purchaseHash
+) {
 	if (typeof window.ethereum !== "undefined") {
 		try {
 			// Connect to Ethereum
@@ -636,25 +766,27 @@ window.approveRefundRequest = async function approveRefundRequest(_purchaseHash)
 				signer
 			);
 
-			const tx = await refundAdminContract.approveRejectRefund(_purchaseHash, 3);
+			const tx = await refundAdminContract.approveRejectRefund(
+				_purchaseHash,
+				3
+			);
 			await tx.wait();
 
 			window.location.reload();
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 
-			if(error.reason == "rejected") {
-
-			}else{
+			if (error.reason == "rejected") {
+			} else {
 				alert("Transaction failed.");
 			}
 		}
 	} else {
 		console.error("Browser wallet not detected!!!");
 	}
-}
+};
 
-window.rejectRefundRequest = async function rejectRefundRequest(_purchaseHash){
+window.rejectRefundRequest = async function rejectRefundRequest(_purchaseHash) {
 	if (typeof window.ethereum !== "undefined") {
 		try {
 			// Connect to Ethereum
@@ -668,26 +800,31 @@ window.rejectRefundRequest = async function rejectRefundRequest(_purchaseHash){
 				signer
 			);
 
-			const tx = await refundAdminContract.approveRejectRefund(_purchaseHash, 4);
+			const tx = await refundAdminContract.approveRejectRefund(
+				_purchaseHash,
+				4
+			);
 
 			await tx.wait();
 
 			window.location.reload();
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 
-			if(error.reason == "rejected") {
-
-			}else{
+			if (error.reason == "rejected") {
+			} else {
 				alert("Transaction failed.");
 			}
 		}
 	} else {
 		console.error("Browser wallet not detected!!!");
 	}
-}
+};
 
-window.banAccountRequestRefund = async function rejectRefundRequest(user, _purchaseHash){
+window.banAccountRequestRefund = async function rejectRefundRequest(
+	user,
+	_purchaseHash
+) {
 	if (typeof window.ethereum !== "undefined") {
 		try {
 			// Connect to Ethereum
@@ -708,21 +845,24 @@ window.banAccountRequestRefund = async function rejectRefundRequest(user, _purch
 
 			if (reason == null || reason == "") return;
 
-			const tx = await refundAdminContract.banAccount(user, _purchaseHash, reason);
+			const tx = await refundAdminContract.banAccount(
+				user,
+				_purchaseHash,
+				reason
+			);
 
 			await tx.wait();
 
 			window.location.reload();
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 
-			if(error.reason == "rejected") {
-
-			}else{
+			if (error.reason == "rejected") {
+			} else {
 				alert("Transaction failed.");
 			}
 		}
 	} else {
 		console.error("Browser wallet not detected!!!");
 	}
-}
+};

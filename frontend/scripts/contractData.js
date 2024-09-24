@@ -1,14 +1,14 @@
 export const AdminManagementAbi = (await(await fetch("/blockchain/build/contracts/AdminManagement.json")).json()).abi;
-export const AdminManagementAddress = "0x87Fbb1C515956Ac9E2B96A952673537C944A28B5";
+export const AdminManagementAddress = "0x38dDd675F2D9f6B9dd14acD02Fa77d7cA4DfDc61";
 
 export const StockManagementAbi = (await(await fetch("/blockchain/build/contracts/StockManagement.json")).json()).abi;
-export const StockManagementAddress = "0x96d1b1137BB273eb5C820784aE8F70b4e38331A8";
+export const StockManagementAddress = "0x9BFdA166233DCe912f6964146Fb8D95DD330dBC8";
 
 export const purchaseProductAbi = (await(await fetch("/blockchain/build/contracts/PurchaseProduct.json")).json()).abi;
-export const purchaseProductAddress = "0xeBb05271c1806fC7A23DD6a09d59e4A8101bB0F5";
+export const purchaseProductAddress = "0x5d6ae31108f37D703eE1617E23A350A57f7987F3";
 
 export const refundClientAbi = (await(await fetch("/blockchain/build/contracts/RefundClient.json")).json()).abi;
-export const refundClientAddress = "0x30a72267113f3b4a4ba82eC01712043299A227dA";
+export const refundClientAddress = "0x52D64BF17dB1F02D4507B211e220c291674e0C46";
 
 export const refundAdminAbi = (await(await fetch("/blockchain/build/contracts/RefundAdmin.json")).json()).abi;
-export const refundAdminAddress = "0x2257eDaD4B6C4942C3e16cEd0B767614B74B8106";
+export const refundAdminAddress = "0xe5D9E5b526DEFF91fe70F13dA69bF7395b64cF20";

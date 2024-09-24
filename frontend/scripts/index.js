@@ -57,11 +57,10 @@ window.getProductListJs = async function getProductListJs() {
 			updateOnSaleList(decorationList, "Decoration");
 			updateOnSaleList(othersList, "Others");
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 
-			if(error.reason == "rejected") {
-
-			}else{
+			if (error.reason == "rejected") {
+			} else {
 				alert("Transaction failed.");
 			}
 		}
@@ -160,7 +159,8 @@ async function updateGoingToLaunchList(goingToLaunchProducts) {
 				"card-footer text-bg-primary btn py-0 px-5";
 			buttonElement.style.fontSize = "1.25rem";
 			buttonElement.style.borderBottomLeftRadius = "0";
-			buttonElement.onclick = () => setReminderForUser(product.productUniqueHash); // Assuming addToCart is defined
+			buttonElement.onclick = () =>
+				setReminderForUser(product.productUniqueHash); // Assuming addToCart is defined
 			buttonElement.innerHTML = `<img src="assets/icon/reminder.png" height="30px" alt="reminder">`;
 
 			// Assemble the card
@@ -246,24 +246,24 @@ async function updateOnSaleList(onSaleProducts, uniqueID) {
 			priceElement.className = "h2 my-auto";
 			priceElement.innerText = "RM " + product.price;
 
-            //if product out of stock, disable it
-            const buttonElement = document.createElement("button");
+			//if product out of stock, disable it
+			const buttonElement = document.createElement("button");
 			buttonElement.type = "button";
-            buttonElement.style.fontSize = "1.25rem";
+			buttonElement.style.fontSize = "1.25rem";
 			buttonElement.style.borderBottomLeftRadius = "0";
 
-            if(product.productStatus != 3){
-			    buttonElement.className =
-				"card-footer text-bg-primary btn py-0 px-5";
-			    buttonElement.onclick = () => purchaseProduct(product.productUniqueHash);
-			    buttonElement.innerHTML = `<img src="assets/icon/cart.png" height="30px" alt="cart">`;
-            }else{
-                buttonElement.className =
-				"card-footer btn text-bg-danger py-0 px-5";
-			    buttonElement.onclick = () => alert("Product out of stock");
-			    buttonElement.innerHTML = `<img src="assets/icon/out-of-stock.png" height="30px" alt="out of stock">`;
-            }
-			
+			if (product.productStatus != 3) {
+				buttonElement.className =
+					"card-footer text-bg-primary btn py-0 px-5";
+				buttonElement.onclick = () =>
+					purchaseProduct(product.productUniqueHash);
+				buttonElement.innerHTML = `<img src="assets/icon/cart.png" height="30px" alt="cart">`;
+			} else {
+				buttonElement.className =
+					"card-footer btn text-bg-danger py-0 px-5";
+				buttonElement.onclick = () => alert("Product out of stock");
+				buttonElement.innerHTML = `<img src="assets/icon/out-of-stock.png" height="30px" alt="out of stock">`;
+			}
 
 			// Assemble the card
 			cardBodyDiv.appendChild(titleElement);
@@ -329,6 +329,36 @@ window.setReminderForUser = async function setReminderForUser(productHash) {
 				signer
 			);
 
+			const email = prompt("Enter your email: ");
+
+			if (email == "" || email == null) return;
+
+			const data = {
+				email: email,
+				ethAddress: await (await signer).getAddress()
+			}
+
+			try {
+				const response = await fetch("http://127.0.0.1:4000/setReminder", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify(data),
+				});
+
+				// Check if the response is OK (status in the range 200-299)
+				if (!response.ok) {
+					throw new Error(`HTTP error! Status: ${response.status}`);
+				}
+
+				// Parse the JSON response
+				const jsonResponse = await response.json();
+				console.log("Response:", jsonResponse);
+			} catch (error) {
+				console.error("Error making POST request:", error);
+			}
+
 			await purchaseProductContract.setReminder(
 				await (await signer).getAddress(),
 				productHash
@@ -336,11 +366,10 @@ window.setReminderForUser = async function setReminderForUser(productHash) {
 
 			alert("We will send you an email when the time come.");
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 
-			if(error.reason == "rejected") {
-
-			}else{
+			if (error.reason == "rejected") {
+			} else {
 				alert("Transaction failed.");
 			}
 		}
@@ -355,7 +384,7 @@ window.purchaseProduct = async function purchaseProduct(productHash) {
 			const provider = new ethers.BrowserProvider(window.ethereum);
 			const signer = await provider.getSigner();
 
-            const stockManagementContract = new ethers.Contract(
+			const stockManagementContract = new ethers.Contract(
 				StockManagementAddress,
 				StockManagementAbi,
 				provider
@@ -367,7 +396,7 @@ window.purchaseProduct = async function purchaseProduct(productHash) {
 				signer
 			);
 
-            console.log(productHash)
+			console.log(productHash);
 
 			var quantity = prompt("Please enter quantity", 0);
 
@@ -375,21 +404,33 @@ window.purchaseProduct = async function purchaseProduct(productHash) {
 				return;
 			}
 
-            const ethPriceMYR = BigInt(10881);
-            const amountToSend = ethers.parseEther((Number(await stockManagementContract.returnProductPrice(productHash)) * Number(quantity)) + "") / ethPriceMYR;
+			const ethPriceMYR = BigInt(10881);
+			const amountToSend =
+				ethers.parseEther(
+					Number(
+						await stockManagementContract.returnProductPrice(
+							productHash
+						)
+					) *
+						Number(quantity) +
+						""
+				) / ethPriceMYR;
 
-			const tx = await purchaseProductContract.userPurchaseProduct(productHash, quantity, { value: amountToSend });
+			const tx = await purchaseProductContract.userPurchaseProduct(
+				productHash,
+				quantity,
+				{ value: amountToSend }
+			);
 
-            await tx.wait();
-            alert('Transaction Confirmed:', tx);
+			await tx.wait();
+			alert("Transaction Confirmed:", tx);
 
 			window.location.href = "my_purchase.php";
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 
-			if(error.reason == "rejected") {
-
-			}else{
+			if (error.reason == "rejected") {
+			} else {
 				alert("Transaction failed.");
 			}
 		}

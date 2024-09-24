@@ -186,7 +186,6 @@ contract PurchaseProduct {
                 index++;
             }
         }
-
         
 
         for (uint i = 0; i < index; i++) {
