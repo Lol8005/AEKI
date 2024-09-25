@@ -1,8 +1,8 @@
 export const AdminManagementAbi = (await(await fetch("/blockchain/build/contracts/AdminManagement.json")).json()).abi;
-export const AdminManagementAddress = "0x38dDd675F2D9f6B9dd14acD02Fa77d7cA4DfDc61";
+export const AdminManagementAddress = "0xAa9Be876ce87878DaBbc330aC690F7AcF9E21787";
 
 export const StockManagementAbi = (await(await fetch("/blockchain/build/contracts/StockManagement.json")).json()).abi;
-export const StockManagementAddress = "0x9BFdA166233DCe912f6964146Fb8D95DD330dBC8";
+export const StockManagementAddress = "0x425d9e5a2CDF572d12c2dC22b2F410b7C8162F4D";
 
 export const purchaseProductAbi = (await(await fetch("/blockchain/build/contracts/PurchaseProduct.json")).json()).abi;
 export const purchaseProductAddress = "0x5d6ae31108f37D703eE1617E23A350A57f7987F3";

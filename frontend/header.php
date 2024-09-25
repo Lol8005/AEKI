@@ -77,6 +77,9 @@
             <li class="nav-item">
               <a class="nav-link" aria-current="page" href="refund_admin.php">Refund Management</a>
             </li>
+            <li class="nav-item">
+              <a class="nav-link" aria-current="page" href="transaction_status.php">Transaction Status</a>
+            </li>
           <?php } ?>
         </ul>
 

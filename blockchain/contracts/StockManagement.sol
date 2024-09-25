@@ -49,6 +49,10 @@ contract StockManagement {
         uint256 discontinueTime;
     }
 
+    enum StockTransactionStatus{ Queued, Cancelled, Executed, Instantly }
+    event StockLaunchEvent(bytes32 indexed productHash, uint256 launchTime, StockTransactionStatus status, address adminAddress);
+    event StockDiscontinueEvent(bytes32 indexed productHash, uint256 launchTime, StockTransactionStatus status, address adminAddress);
+
     bytes32[] public onSale_productHash;
     bytes32[] public goingToLaunch_productHash;
     bytes32[] public discontinueProduct_productHash;
@@ -63,7 +67,7 @@ contract StockManagement {
         ProductCategory productCategory,
         uint256 launchEpochTime,
         uint256 discontinueTime
-    ) external onlyActiveAdmin {
+    ) external onlyActiveAdmin returns(bytes32){
         require(price > 0, "Invalid price");
         require(quantity > 0, "Invalid quantity");
 
@@ -101,6 +105,8 @@ contract StockManagement {
 
             onSale_productHash.push(productUniqueHash);
             product_map[productUniqueHash] = product;
+
+            emit StockLaunchEvent(productUniqueHash, block.timestamp, StockTransactionStatus.Instantly, msg.sender);
         } else {
             require(launchEpochTime > block.timestamp, "Invalid launch time");
             require(
@@ -110,7 +116,15 @@ contract StockManagement {
 
             goingToLaunch_productHash.push(productUniqueHash);
             product_map[productUniqueHash] = product;
+
+            emit StockLaunchEvent(productUniqueHash, block.timestamp, StockTransactionStatus.Queued, msg.sender);
         }
+
+        if(discontinueTime > 0){
+            emit StockDiscontinueEvent(productUniqueHash, block.timestamp, StockTransactionStatus.Queued, msg.sender);
+        }
+
+        return productUniqueHash;
     }
 
     function restockProduct(
@@ -131,7 +145,36 @@ contract StockManagement {
         product_map[productHash].productStatus = ProductStatus.Active;
     }
 
-    function discontinueItem(
+    function modifyLaunchTime(bytes32 productHash, uint256 launchTime) external onlyActiveAdmin{
+        bool isProductGoingToLaunch_bool = isProductGoingToLaunch(productHash);
+
+        require(
+            isProductGoingToLaunch_bool,
+            "Product Not Available"
+        );
+
+        require(
+            launchTime != 0 ? launchTime > block.timestamp : true,
+            "Invalid launch time"
+        );
+
+        if (launchTime == 0) {
+            product_map[productHash].launchTime = block.timestamp;
+            product_map[productHash].productStatus = ProductStatus.Active;
+
+            onSale_productHash.push(productHash);
+
+            remove_goingToLaunch_productHash(productHash);
+
+            emit StockLaunchEvent(productHash, launchTime, StockTransactionStatus.Instantly, msg.sender);
+        }else{
+            product_map[productHash].launchTime = launchTime;
+
+            emit StockLaunchEvent(productHash, launchTime, StockTransactionStatus.Queued, msg.sender);
+        }
+    }
+
+    function setDiscontinueItem(
         bytes32 productHash,
         uint256 discontinueTime
     ) external onlyActiveAdmin {
@@ -142,6 +185,7 @@ contract StockManagement {
             isProductOnSale_bool || isProductGoingToLaunch_bool,
             "Product Not Available"
         );
+
         require(
             discontinueTime != 0 ? discontinueTime > block.timestamp : true,
             "Invalid discontinue time"
@@ -154,9 +198,127 @@ contract StockManagement {
             discontinueProduct_productHash.push(productHash);
 
             isProductOnSale_bool ? remove_onSale_productHash(productHash) : remove_goingToLaunch_productHash(productHash);
+
+            emit StockDiscontinueEvent(productHash, discontinueTime, StockTransactionStatus.Instantly, msg.sender);
         }else{
             product_map[productHash].discontinueTime = discontinueTime;
+
+            emit StockDiscontinueEvent(productHash, discontinueTime, StockTransactionStatus.Queued, msg.sender);
         }
+    }
+
+    function updateLaunchStatus() external {
+        require(msg.sender == superAdmin, "Only super admin are allow to perform this action");
+
+        for (uint i = 0; i < goingToLaunch_productHash.length; i++) {
+            bytes32 _hash = goingToLaunch_productHash[i];
+            if(block.timestamp > product_map[_hash].launchTime && product_map[_hash].productStatus == ProductStatus.ReadyToLaunch){
+                remove_goingToLaunch_productHash(_hash);
+                onSale_productHash.push(_hash);
+                product_map[_hash].productStatus = ProductStatus.Active;
+
+                emit StockLaunchEvent(_hash, product_map[_hash].launchTime, StockTransactionStatus.Executed, msg.sender);
+            }
+        }
+    }
+
+    function updateDiscontinueStatus() external {
+        for (uint i = 0; i < onSale_productHash.length; i++) {
+            bytes32 _hash = onSale_productHash[i];
+            if(product_map[_hash].discontinueTime != 0 && block.timestamp > product_map[_hash].discontinueTime){
+                remove_onSale_productHash(_hash);
+                discontinueProduct_productHash.push(_hash);
+                product_map[_hash].productStatus = ProductStatus.Discontinue;
+
+                emit StockDiscontinueEvent(_hash, product_map[_hash].discontinueTime, StockTransactionStatus.Executed, msg.sender);
+            }
+        }
+    }
+
+    function cancelLaunch(bytes32 productHash) external onlyActiveAdmin {
+        require(isProductGoingToLaunch(productHash), "Product not exists");
+
+        product_map[productHash].productStatus = ProductStatus.NotRegister;
+        remove_goingToLaunch_productHash(productHash);
+
+        emit StockLaunchEvent(productHash, product_map[productHash].launchTime, StockTransactionStatus.Cancelled, msg.sender);
+    }
+
+    function resetDiscontinueTime(bytes32 productHash) external onlyActiveAdmin {
+        bool isProductOnSale_bool = isProductOnSale(productHash);
+        bool isProductGoingToLaunch_bool = isProductGoingToLaunch(productHash);
+
+        require(
+            isProductOnSale_bool || isProductGoingToLaunch_bool,
+            "Product Not Available"
+        );
+
+        product_map[productHash].discontinueTime = 0;
+
+        emit StockDiscontinueEvent(productHash, product_map[productHash].discontinueTime, StockTransactionStatus.Cancelled, msg.sender);
+    }
+
+    function getProductList() external view returns(Product[] memory, Product[] memory, Product[] memory) {
+        Product[] memory onSale = new Product[](onSale_productHash.length);
+        Product[] memory goingToLaunch = new Product[](goingToLaunch_productHash.length);
+        Product[] memory discontinueProduct = new Product[](discontinueProduct_productHash.length);
+
+        for (uint i = 0; i < onSale_productHash.length; i++) {
+            onSale[i] = product_map[onSale_productHash[i]];
+        }
+
+        for (uint i = 0; i < goingToLaunch_productHash.length; i++) {
+            goingToLaunch[i] = product_map[goingToLaunch_productHash[i]];
+        }
+
+        for (uint i = 0; i < discontinueProduct_productHash.length; i++) {
+            discontinueProduct[i] = product_map[discontinueProduct_productHash[i]];
+        }
+
+        return (onSale, goingToLaunch, discontinueProduct);
+    }
+
+    // function updateProductStatus() external {
+    //     require(msg.sender == superAdmin, "Only super admin are allow to perform this action");
+
+    //     for (uint i = 0; i < goingToLaunch_productHash.length; i++) {
+    //         bytes32 _hash = goingToLaunch_productHash[i];
+    //         if(block.timestamp > product_map[_hash].launchTime && product_map[_hash].productStatus == ProductStatus.ReadyToLaunch){
+    //             remove_goingToLaunch_productHash(_hash);
+    //             onSale_productHash.push(_hash);
+    //             product_map[_hash].productStatus = ProductStatus.Active;
+    //         }
+    //     }
+
+    //     for (uint i = 0; i < onSale_productHash.length; i++) {
+    //         bytes32 _hash = onSale_productHash[i];
+    //         if(product_map[_hash].discontinueTime != 0 && block.timestamp > product_map[_hash].discontinueTime){
+    //             remove_onSale_productHash(_hash);
+    //             discontinueProduct_productHash.push(_hash);
+    //             product_map[_hash].productStatus = ProductStatus.Discontinue;
+    //         }
+    //     }
+    // }
+
+    function decreaseStock(bytes32 productHash, uint32 quantity) external {
+        require(product_map[productHash].productStatus == ProductStatus.Active, "Product not active");
+        require(product_map[productHash].quantity >= quantity, "Product stock not enough");
+
+        product_map[productHash].quantity -= quantity;
+
+        if(product_map[productHash].quantity == 0){
+            product_map[productHash].productStatus = ProductStatus.OutOfStock;
+        }
+    }
+
+    function returnProductPrice(bytes32 productHash) external view returns(uint32){
+        require(isProductOnSale(productHash), "Not on sale");
+
+        return product_map[productHash].price;
+    }
+
+    function returnProductLaunchTime(bytes32 productHash) external view returns(uint256){
+        return product_map[productHash].launchTime;
     }
 
     function remove_onSale_productHash(bytes32 productHash) private {
@@ -211,68 +373,5 @@ contract StockManagement {
         // }
 
         return product_map[productHash].productStatus == ProductStatus.ReadyToLaunch;
-    }
-
-    function getProductList() external view returns(Product[] memory, Product[] memory, Product[] memory) {
-        Product[] memory onSale = new Product[](onSale_productHash.length);
-        Product[] memory goingToLaunch = new Product[](goingToLaunch_productHash.length);
-        Product[] memory discontinueProduct = new Product[](discontinueProduct_productHash.length);
-
-        for (uint i = 0; i < onSale_productHash.length; i++) {
-            onSale[i] = product_map[onSale_productHash[i]];
-        }
-
-        for (uint i = 0; i < goingToLaunch_productHash.length; i++) {
-            goingToLaunch[i] = product_map[goingToLaunch_productHash[i]];
-        }
-
-        for (uint i = 0; i < discontinueProduct_productHash.length; i++) {
-            discontinueProduct[i] = product_map[discontinueProduct_productHash[i]];
-        }
-
-        return (onSale, goingToLaunch, discontinueProduct);
-    }
-
-    function updateProductStatus() external {
-        require(msg.sender == superAdmin, "Only super admin are allow to perform this action");
-
-        for (uint i = 0; i < goingToLaunch_productHash.length; i++) {
-            bytes32 _hash = goingToLaunch_productHash[i];
-            if(block.timestamp > product_map[_hash].launchTime && product_map[_hash].productStatus == ProductStatus.ReadyToLaunch){
-                remove_goingToLaunch_productHash(_hash);
-                onSale_productHash.push(_hash);
-                product_map[_hash].productStatus = ProductStatus.Active;
-            }
-        }
-
-        for (uint i = 0; i < onSale_productHash.length; i++) {
-            bytes32 _hash = onSale_productHash[i];
-            if(product_map[_hash].discontinueTime != 0 && block.timestamp > product_map[_hash].discontinueTime){
-                remove_onSale_productHash(_hash);
-                discontinueProduct_productHash.push(_hash);
-                product_map[_hash].productStatus = ProductStatus.Discontinue;
-            }
-        }
-    }
-
-    function decreaseStock(bytes32 productHash, uint32 quantity) external {
-        require(product_map[productHash].productStatus == ProductStatus.Active, "Product not active");
-        require(product_map[productHash].quantity >= quantity, "Product stock not enough");
-
-        product_map[productHash].quantity -= quantity;
-
-        if(product_map[productHash].quantity == 0){
-            product_map[productHash].productStatus = ProductStatus.OutOfStock;
-        }
-    }
-
-    function returnProductPrice(bytes32 productHash) external view returns(uint32){
-        require(isProductOnSale(productHash), "Not on sale");
-
-        return product_map[productHash].price;
-    }
-
-    function returnProductLaunchTime(bytes32 productHash) external view returns(uint256){
-        return product_map[productHash].launchTime;
     }
 }

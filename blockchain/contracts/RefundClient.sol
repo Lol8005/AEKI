@@ -69,7 +69,7 @@ contract RefundClient {
             }
         }
 
-        revert("Purchased product is not aligible to refund");
+        revert("Purchased product is not eligible to refund");
     }
 
     function cancelRefund(bytes32 _purchaseHash) public {
@@ -85,7 +85,7 @@ contract RefundClient {
             }
         }
 
-        revert("Purchased product is not aligible to refund");
+        revert("Purchased product is not eligible to refund");
     }
 
     function remove_requestRefundProduct(bytes32 _purchaseHash) public {

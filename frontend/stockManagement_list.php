@@ -70,9 +70,9 @@
                 <tbody id="discontinue_product_list_table">
                 </tbody>
             </table>
-            <div class="text-center">
+            <!-- <div class="text-center">
                 <button type="button" class="btn btn-secondary" onclick="updateProductStatus()">Update Status</button>
-            </div>
+            </div> -->
         </div>
     </main>
 </body>
