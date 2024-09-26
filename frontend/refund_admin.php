@@ -25,7 +25,7 @@
 <body>
     <main>
         <div class="container" style="width: 80%">
-            <h2 class="mt-5">Active Product List</h2>
+            <h2 class="mt-5">Refund Request List</h2>
             <table class="table">
                 <thead>
                     <tr>
