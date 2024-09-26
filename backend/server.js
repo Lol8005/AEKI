@@ -70,11 +70,12 @@ const signer = new ethers.Wallet(private_key, provider);
 
 const gasLimit = 5000000;
 
-const purchaseProductContractAddress = "0xAa9Be876ce87878DaBbc330aC690F7AcF9E21787";
-const stockManagementContractAddress = "0x425d9e5a2CDF572d12c2dC22b2F410b7C8162F4D";
-const adminManagementContractAddress = "0xAa9Be876ce87878DaBbc330aC690F7AcF9E21787";
+const purchaseProductContractAddress = "0x24E228FDb8f0db30b3D2e95460B1ce23AdA094a1";
+const stockManagementContractAddress = "0xcB607261F20A183Cc9C628A1d8D44944a942602F";
+const adminManagementContractAddress = "0xB02f26fDf2a051F043d2fCb7D9f1eABC779b8Ef4";
 
 const purchaseContractInstanceRead = new ethers.Contract(purchaseProductContractAddress, (await new Response(fs.readFileSync('./../blockchain/build/contracts/PurchaseProduct.json')).json()).abi, provider);
+const purchaseContractInstanceWrite = new ethers.Contract(purchaseProductContractAddress, (await new Response(fs.readFileSync('./../blockchain/build/contracts/PurchaseProduct.json')).json()).abi, signer);
 const stockManagementContractInstanceWrite = new ethers.Contract(stockManagementContractAddress, (await new Response(fs.readFileSync('./../blockchain/build/contracts/StockManagement.json')).json()).abi, signer);
 const stockManagementContractInstanceRead = new ethers.Contract(stockManagementContractAddress, (await new Response(fs.readFileSync('./../blockchain/build/contracts/StockManagement.json')).json()).abi, provider);
 const adminManagementContractInstanceRead = new ethers.Contract(adminManagementContractAddress, (await new Response(fs.readFileSync('./../blockchain/build/contracts/AdminManagement.json')).json()).abi, provider);
@@ -120,12 +121,20 @@ app.get("/getContacts", (req, res) => {
 });
 
 const transporter = nodemailer.createTransport({
-    host: 'app.debugmail.io',
-    port: 25,
-    secure: false,
+    // host: 'app.debugmail.io',
+    // port: 25,
+    // secure: false,
+    // auth: {
+    //     user: '739d2f1d-ab9d-462f-8f3d-bf368d2a5afa', // Your email
+    //     pass: '6cc6bebf-8b3f-452b-8a19-22e6852d4471' // Your email password (or app-specific password)
+    // }
+
+    host: 'live.smtp.mailtrap.io',
+    port: 587,
+    secure: false, // use SSL
     auth: {
-        user: '739d2f1d-ab9d-462f-8f3d-bf368d2a5afa', // Your email
-        pass: '6cc6bebf-8b3f-452b-8a19-22e6852d4471' // Your email password (or app-specific password)
+        user: 'api',
+        pass: '1a98c622c21ddc6e506af2e95f557643',
     }
 });
 
@@ -133,26 +142,31 @@ const transporter = nodemailer.createTransport({
 purchaseContractInstanceRead.on('callReminderEvent', async (userAddresses, timestamp) => {
     console.log('Reminder Event Received:', { userAddresses, timestamp });
 
-    for (let index = 0; index < userAddresses.length; index++) {
-        const userAddress = userAddresses[index];
-        //const email = global.contactList[userAddress];
+    for (const userAddress of userAddresses) {
 
-        console.log(userAddresses.map((x) => global.contactList[x]));
+        // console.log("address: " + global.contactList.get(userAddress));
         
         const mailOptions = {
-            from: 'your_email@gmail.com',
-            to: userAddresses.map((x) => global.contactList[x]),
+            from: 'reminder-AEKI@demomailtrap.com',
+            to: global.contactList.get(userAddress),
             subject: 'Reminder Alert',
-            text: `Reminder: ${reminderMessage}\nTime: ${new Date(timestamp * 1000).toLocaleString()}`
+            text: `Reminder: New Product Launch Now !! \nTime: ${new Date(Number(timestamp) * 1000).toLocaleString()}`
         };
     
-        try {
-            await transporter.sendMail(mailOptions);
-            console.log('Email sent successfully!');
-        } catch (error) {
-            console.error('Error sending email:', error);
-        }
+        transporter.sendMail(mailOptions, function(error, info){
+            if (error) {
+              console.log('Error:'+ error);
+            } else {
+              console.log('Email sent: ' + info.response);
+            }
+          });
     }
+});
+
+purchaseContractInstanceRead.on('setReminderEvent', async (timestamp) => {
+    console.log('Reminder Event Received:', { timestamp });
+
+    global.reminderTimeList.add(Number(timestamp));
 });
 
 //#endregion
@@ -172,6 +186,8 @@ global.cancel_discontinueProductTransactionList = [];
 global.queue_FiredAdminTransactionList = [];
 global.execute_FiredAdminTransactionList = [];
 global.cancel_FiredAdminTransactionList = [];
+
+global.reminderTimeList = new Set();
 
 class launchDiscontinue_transactionData {
     constructor(productHash, preSignData, functionCall, executionTime, adminAddress) {
@@ -364,7 +380,7 @@ stockManagementContractInstanceRead.on('StockDiscontinueEvent', async (productHa
     console.log('Receive Discontinue Event:', { productHash, timestamp, status, adminAddress });
 
     const preSign = await stockManagementContractInstanceWrite.updateDiscontinueStatus.populateTransaction({
-        gasLimit: gasLimit, 
+        gasLimit: gasLimit,
     });
 
     if(status == 0){
@@ -579,7 +595,7 @@ app.get("/getAllTransactionStatus", (req, res) => {
 });
 
 
-async function checkDiscontinueTimes() {
+async function TimeLock() {
     const currentTime = Math.round(Date.now() / 1000) - 10;
 
     global.queue_discontinueProductTransactionList.forEach(async (transaction) => {
@@ -617,9 +633,23 @@ async function checkDiscontinueTimes() {
             );
         }
     });
+
+    global.reminderTimeList.forEach(async (_time) => {
+        if (_time + 5 <= currentTime) {
+            console.log("Calling reminder");
+
+            global.reminderTimeList.delete(_time);
+
+            const tx = await purchaseContractInstanceWrite.callReminderNow({gasLimit: gasLimit,})
+
+            tx.wait();
+
+            return;
+        }
+    });
 }
 
-setInterval(checkDiscontinueTimes, 1000);
+setInterval(TimeLock, 1000);
 
 //#endregion
 

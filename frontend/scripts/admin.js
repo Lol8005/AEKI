@@ -1040,7 +1040,7 @@ async function updateRequestRefundList() {
 
 				row.innerHTML = `
 				<td>${refund.user}</td>
-				<td>${refund.purchaseHash}</td>
+				<td>${refund.purchaseHash.slice(0, 40)}......</td>
 				<td>
 					<button class="btn btn-primary" onclick="approveRefundRequest('${refund.purchaseHash}')">Approve</button>
 					<button class="btn btn-danger" onclick="rejectRefundRequest('${refund.purchaseHash}')">Reject</button>

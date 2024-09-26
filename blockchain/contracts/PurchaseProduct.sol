@@ -33,7 +33,7 @@ contract PurchaseProduct {
     uint128 private constant ethToMYR = 10881;
     uint128 private constant ethToWei = 1e18;
 
-    address[] public buyer;
+    address[] public buyer; 
     mapping(address => shared.purchaseDetail[]) public purchaseRecord;
 
     uint256[] public reminderTime;
@@ -47,6 +47,7 @@ contract PurchaseProduct {
     );
 
     event callReminderEvent(address[] user, uint256 reminderTime);
+    event setReminderEvent(uint256 reminderTime);
 
     constructor(address _stockManagementAddress, address _adminManagement) {
         superAdmin = msg.sender;
@@ -145,6 +146,8 @@ contract PurchaseProduct {
         }
 
         reminderList[_time].push(user);
+
+        emit setReminderEvent(_time);
     }
 
     function isUserAlreadySetReminder(address user, uint256 time) private view returns (bool){
@@ -186,7 +189,7 @@ contract PurchaseProduct {
                 index++;
             }
         }
-        
+
 
         for (uint i = 0; i < index; i++) {
             remove_reminderTime(_temp[i]);
