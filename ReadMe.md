@@ -1,3 +1,5 @@
+AEKI is an imaginary store built to demonstrate the power of blockchain technology, specifically Ethereum and Solidity. This decentralized application (dApp) showcases how blockchain can streamline inventory management and ensure secure, transparent operations in a retail environment. With time-lock mechanisms, automated processes and a transparent ledger, AEKI highlights the potential of blockchain to solve common challenges in the retail and home decor industries, providing a real-world example of how Ethereum and smart contracts can revolutionize business operations.
+
 # Software that required in computer before start
 1. PHP - https://www.youtube.com/watch?v=zT6QrGIfXaU&themeRefresh=1
 2. IPFS Desktop
